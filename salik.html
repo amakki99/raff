@@ -1,0 +1,3870 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>لوحة قيادة سالك — تحليل الرحلات</title>
+
+<!-- خطوط عربية احترافية -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700;800&family=Tajawal:wght@300;400;500;700;800&family=IBM+Plex+Sans+Arabic:wght@300;400;500;600;700&family=Almarai:wght@300;400;700;800&display=swap" rel="stylesheet">
+
+<!-- المكتبات -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+
+<style>
+:root {
+  /* الألوان الأساسية - مستوحاة من الهوية الإماراتية */
+  --bg-primary: #0a1628;
+  --bg-secondary: #0f1e36;
+  --bg-card: #142544;
+  --bg-card-hover: #1a2d52;
+  --bg-elevated: #1e3358;
+
+  --accent-gold: #d4af37;
+  --accent-gold-soft: #e6c558;
+  --accent-emerald: #10b981;
+  --accent-emerald-soft: #34d399;
+  --accent-crimson: #ef4444;
+  --accent-amber: #f59e0b;
+  --accent-blue: #3b82f6;
+  --accent-purple: #8b5cf6;
+
+  --text-primary: #f1f5f9;
+  --text-secondary: #94a3b8;
+  --text-tertiary: #64748b;
+  --text-muted: #475569;
+
+  --border: rgba(148, 163, 184, 0.1);
+  --border-strong: rgba(148, 163, 184, 0.2);
+  --border-accent: rgba(212, 175, 55, 0.3);
+
+  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.4);
+  --shadow-lg: 0 16px 48px rgba(0, 0, 0, 0.5);
+  --shadow-glow: 0 0 32px rgba(212, 175, 55, 0.15);
+
+  --gradient-gold: linear-gradient(135deg, #d4af37 0%, #f4d27a 100%);
+  --gradient-emerald: linear-gradient(135deg, #059669 0%, #10b981 100%);
+  --gradient-blue: linear-gradient(135deg, #2563eb 0%, #3b82f6 100%);
+  --gradient-bg: linear-gradient(135deg, #0a1628 0%, #142544 100%);
+
+  --sidebar-w: 280px;
+  --header-h: 72px;
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 24px;
+
+  /* الخطوط العربية العصرية */
+  --font-body: 'Tajawal', 'IBM Plex Sans Arabic', 'Cairo', system-ui, sans-serif;
+  --font-display: 'Cairo', 'Tajawal', system-ui, sans-serif;
+  --font-numeric: 'Cairo', 'Tajawal', system-ui, sans-serif;
+  --font-accent: 'Almarai', 'Cairo', sans-serif;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+html, body {
+  font-family: var(--font-body);
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  line-height: 1.6;
+  font-size: 14px;
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* خلفية بزخارف هندسية إسلامية ناعمة */
+body::before {
+  content: '';
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background-image:
+    radial-gradient(circle at 20% 20%, rgba(212, 175, 55, 0.06) 0%, transparent 50%),
+    radial-gradient(circle at 80% 80%, rgba(16, 185, 129, 0.05) 0%, transparent 50%),
+    radial-gradient(circle at 50% 50%, rgba(59, 130, 246, 0.03) 0%, transparent 50%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* ============== الشريط الجانبي ============== */
+.sidebar {
+  position: fixed;
+  top: 0;
+  right: 0;
+  width: var(--sidebar-w);
+  height: 100vh;
+  background: var(--bg-secondary);
+  border-left: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  z-index: 100;
+  transition: transform 0.3s ease;
+}
+
+.sidebar-header {
+  padding: 24px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.logo-mark {
+  width: 44px;
+  height: 44px;
+  background: var(--gradient-gold);
+  border-radius: var(--radius-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 20px;
+  color: var(--bg-primary);
+  box-shadow: 0 4px 12px rgba(212, 175, 55, 0.3);
+}
+
+.logo-text h1 {
+  font-family: var(--font-display);
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: -0.3px;
+}
+
+.logo-text p {
+  font-size: 11px;
+  color: var(--text-tertiary);
+  letter-spacing: 0.5px;
+  margin-top: 2px;
+}
+
+.sidebar-nav {
+  flex: 1;
+  padding: 20px 16px;
+  overflow-y: auto;
+}
+
+.nav-section-title {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  color: var(--text-muted);
+  padding: 12px 12px 8px;
+  font-weight: 600;
+}
+
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 11px 14px;
+  border-radius: var(--radius-sm);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  margin-bottom: 4px;
+  font-size: 14px;
+  border: 1px solid transparent;
+  position: relative;
+}
+
+.nav-item:hover {
+  background: var(--bg-card);
+  color: var(--text-primary);
+}
+
+.nav-item.active {
+  background: linear-gradient(135deg, rgba(212, 175, 55, 0.15) 0%, rgba(212, 175, 55, 0.05) 100%);
+  color: var(--accent-gold-soft);
+  border-color: var(--border-accent);
+}
+
+.nav-item.active::before {
+  content: '';
+  position: absolute;
+  right: -1px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 3px;
+  height: 60%;
+  background: var(--accent-gold);
+  border-radius: 2px;
+}
+
+.nav-icon {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+  stroke: currentColor;
+  stroke-width: 2;
+  fill: none;
+}
+
+.sidebar-footer {
+  padding: 20px;
+  border-top: 1px solid var(--border);
+  font-size: 11px;
+  color: var(--text-muted);
+  text-align: center;
+  letter-spacing: 0.3px;
+}
+
+/* ============== المحتوى الرئيسي ============== */
+.main {
+  margin-right: var(--sidebar-w);
+  min-height: 100vh;
+  position: relative;
+  z-index: 1;
+}
+
+.topbar {
+  height: var(--header-h);
+  background: rgba(15, 30, 54, 0.7);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-bottom: 1px solid var(--border);
+  padding: 0 32px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: sticky;
+  top: 0;
+  z-index: 50;
+}
+
+.topbar-title h2 {
+  font-family: var(--font-display);
+  font-size: 22px;
+  font-weight: 600;
+  letter-spacing: -0.3px;
+}
+
+.topbar-title p {
+  font-size: 12px;
+  color: var(--text-tertiary);
+  margin-top: 2px;
+}
+
+.topbar-actions {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 16px;
+  border-radius: var(--radius-sm);
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  border: 1px solid var(--border-strong);
+  background: var(--bg-card);
+  color: var(--text-primary);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn:hover {
+  background: var(--bg-card-hover);
+  border-color: var(--accent-gold);
+  color: var(--accent-gold-soft);
+  transform: translateY(-1px);
+}
+
+.btn-primary {
+  background: var(--gradient-gold);
+  color: var(--bg-primary);
+  border-color: transparent;
+  font-weight: 600;
+}
+
+.btn-primary:hover {
+  filter: brightness(1.1);
+  color: var(--bg-primary);
+}
+
+.btn svg { width: 14px; height: 14px; }
+
+.menu-toggle {
+  display: none;
+  width: 40px; height: 40px;
+  border: 1px solid var(--border-strong);
+  background: var(--bg-card);
+  border-radius: var(--radius-sm);
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: var(--text-primary);
+}
+
+.content {
+  padding: 28px 32px;
+  max-width: 1600px;
+}
+
+/* ============== بطاقات KPI ============== */
+.kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 20px;
+  margin-bottom: 28px;
+}
+
+.kpi-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 24px;
+  position: relative;
+  overflow: hidden;
+  transition: all 0.3s ease;
+}
+
+.kpi-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 100%;
+  height: 3px;
+  background: var(--accent-bar, var(--accent-gold));
+  opacity: 0.7;
+}
+
+.kpi-card:hover {
+  transform: translateY(-2px);
+  border-color: var(--border-strong);
+  box-shadow: var(--shadow-md);
+}
+
+.kpi-card.gold { --accent-bar: var(--accent-gold); }
+.kpi-card.emerald { --accent-bar: var(--accent-emerald); }
+.kpi-card.blue { --accent-bar: var(--accent-blue); }
+.kpi-card.amber { --accent-bar: var(--accent-amber); }
+
+.kpi-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 16px;
+}
+
+.kpi-label {
+  font-size: 13px;
+  color: var(--text-secondary);
+  font-weight: 500;
+  letter-spacing: 0.2px;
+}
+
+.kpi-icon-box {
+  width: 38px;
+  height: 38px;
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(212, 175, 55, 0.1);
+  color: var(--accent-gold-soft);
+}
+
+.kpi-card.emerald .kpi-icon-box { background: rgba(16, 185, 129, 0.1); color: var(--accent-emerald-soft); }
+.kpi-card.blue .kpi-icon-box { background: rgba(59, 130, 246, 0.1); color: #60a5fa; }
+.kpi-card.amber .kpi-icon-box { background: rgba(245, 158, 11, 0.1); color: #fbbf24; }
+
+.kpi-icon-box svg { width: 18px; height: 18px; stroke: currentColor; stroke-width: 2; fill: none; }
+
+.kpi-value {
+  font-family: var(--font-numeric);
+  font-size: 32px;
+  font-weight: 800;
+  letter-spacing: -1px;
+  line-height: 1.1;
+  margin-bottom: 8px;
+}
+
+.kpi-unit {
+  font-size: 14px;
+  color: var(--text-tertiary);
+  font-weight: 400;
+  margin-right: 4px;
+}
+
+.kpi-meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--text-tertiary);
+}
+
+.kpi-trend {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-weight: 600;
+  font-size: 11px;
+}
+
+.kpi-trend.up { background: rgba(16, 185, 129, 0.15); color: var(--accent-emerald-soft); }
+.kpi-trend.neutral { background: rgba(148, 163, 184, 0.1); color: var(--text-secondary); }
+
+/* ============== بطاقات الرسوم البيانية ============== */
+.charts-grid {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 20px;
+  margin-bottom: 28px;
+}
+
+@media (max-width: 1100px) {
+  .charts-grid { grid-template-columns: 1fr; }
+}
+
+.chart-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 24px;
+}
+
+.chart-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.chart-title {
+  font-family: var(--font-display);
+  font-size: 16px;
+  font-weight: 600;
+  letter-spacing: -0.2px;
+}
+
+.chart-subtitle {
+  font-size: 12px;
+  color: var(--text-tertiary);
+  margin-top: 2px;
+}
+
+.chart-tabs {
+  display: flex;
+  gap: 4px;
+  background: var(--bg-elevated);
+  border-radius: var(--radius-sm);
+  padding: 3px;
+}
+
+.chart-tab {
+  padding: 6px 12px;
+  font-size: 12px;
+  background: transparent;
+  border: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  border-radius: 6px;
+  font-family: inherit;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.chart-tab.active {
+  background: var(--accent-gold);
+  color: var(--bg-primary);
+  font-weight: 600;
+}
+
+.chart-body {
+  position: relative;
+  height: 280px;
+}
+
+.chart-body.tall { height: 320px; }
+
+/* صف رسومين */
+.charts-row-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+  margin-bottom: 28px;
+}
+
+@media (max-width: 900px) {
+  .charts-row-2 { grid-template-columns: 1fr; }
+}
+
+/* ============== التحليلات الذكية ============== */
+.insights-card {
+  background: linear-gradient(135deg, var(--bg-card) 0%, var(--bg-elevated) 100%);
+  border: 1px solid var(--border-accent);
+  border-radius: var(--radius-lg);
+  padding: 24px;
+  margin-bottom: 28px;
+  position: relative;
+  overflow: hidden;
+}
+
+.insights-card::before {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -10%;
+  width: 200px;
+  height: 200px;
+  background: radial-gradient(circle, rgba(212, 175, 55, 0.15) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+.insights-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.insights-icon {
+  width: 38px;
+  height: 38px;
+  background: var(--gradient-gold);
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--bg-primary);
+}
+
+.insights-icon svg { width: 20px; height: 20px; stroke: currentColor; stroke-width: 2.2; fill: none; }
+
+.insights-title {
+  font-family: var(--font-display);
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.insights-subtitle {
+  font-size: 12px;
+  color: var(--text-tertiary);
+}
+
+.insights-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 16px;
+  position: relative;
+  z-index: 1;
+}
+
+.insight-item {
+  background: rgba(10, 22, 40, 0.5);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 16px;
+}
+
+.insight-label {
+  font-size: 11px;
+  color: var(--text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+
+.insight-value {
+  font-family: var(--font-numeric);
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--accent-gold-soft);
+  margin-bottom: 4px;
+  line-height: 1.2;
+}
+
+.insight-detail {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+/* ============== الجدول ============== */
+.table-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  margin-bottom: 24px;
+}
+
+.table-header {
+  padding: 20px 24px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.table-title-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.table-badge {
+  padding: 3px 10px;
+  background: rgba(212, 175, 55, 0.15);
+  color: var(--accent-gold-soft);
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.table-controls {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.search-box {
+  position: relative;
+}
+
+.search-box input {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  padding: 9px 14px 9px 36px;
+  color: var(--text-primary);
+  font-family: inherit;
+  font-size: 13px;
+  width: 240px;
+  transition: all 0.2s ease;
+}
+
+.search-box input::placeholder { color: var(--text-tertiary); }
+
+.search-box input:focus {
+  outline: none;
+  border-color: var(--accent-gold);
+  background: var(--bg-card);
+}
+
+.search-box svg {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 14px;
+  height: 14px;
+  stroke: var(--text-tertiary);
+  stroke-width: 2;
+  fill: none;
+}
+
+select.filter-select {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  padding: 9px 14px;
+  color: var(--text-primary);
+  font-family: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+select.filter-select:focus { outline: none; border-color: var(--accent-gold); }
+
+.table-wrapper {
+  overflow-x: auto;
+  max-height: 600px;
+  overflow-y: auto;
+}
+
+table.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.data-table thead {
+  background: var(--bg-elevated);
+  position: sticky;
+  top: 0;
+  z-index: 5;
+}
+
+.data-table th {
+  padding: 14px 16px;
+  text-align: right;
+  font-weight: 600;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-secondary);
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+  cursor: pointer;
+  user-select: none;
+}
+
+.data-table th:hover { color: var(--accent-gold-soft); }
+
+.data-table th .sort-icon {
+  display: inline-block;
+  margin-right: 4px;
+  opacity: 0.4;
+  font-size: 10px;
+}
+
+.data-table th.sorted-asc .sort-icon,
+.data-table th.sorted-desc .sort-icon {
+  opacity: 1;
+  color: var(--accent-gold);
+}
+
+.data-table td {
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--border);
+  color: var(--text-primary);
+  white-space: nowrap;
+}
+
+.data-table tbody tr {
+  transition: background 0.15s ease;
+}
+
+.data-table tbody tr:hover { background: var(--bg-card-hover); }
+
+.cell-money {
+  font-family: var(--font-display);
+  font-weight: 600;
+  color: var(--accent-gold-soft);
+}
+
+.cell-id {
+  font-family: 'JetBrains Mono', 'Courier New', monospace;
+  font-size: 11px;
+  color: var(--text-tertiary);
+  letter-spacing: 0.3px;
+}
+
+.tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 9px;
+  border-radius: 10px;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.tag-direction-sharjah { background: rgba(59, 130, 246, 0.15); color: #60a5fa; }
+.tag-direction-abudhabi { background: rgba(16, 185, 129, 0.15); color: var(--accent-emerald-soft); }
+
+.dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.table-footer {
+  padding: 14px 24px;
+  border-top: 1px solid var(--border);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 12px;
+  color: var(--text-tertiary);
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.pagination {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+}
+
+.page-btn {
+  min-width: 32px;
+  height: 32px;
+  padding: 0 8px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-strong);
+  border-radius: 6px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.page-btn:hover:not(:disabled) {
+  background: var(--bg-card-hover);
+  color: var(--text-primary);
+}
+
+.page-btn.active {
+  background: var(--accent-gold);
+  color: var(--bg-primary);
+  border-color: var(--accent-gold);
+  font-weight: 700;
+}
+
+.page-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* أقسام الصفحات */
+.page-section { display: none; animation: fadeIn 0.3s ease; }
+.page-section.active { display: block; }
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* قسم البوابات */
+.gates-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 16px;
+  margin-bottom: 28px;
+}
+
+.gate-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 20px;
+  position: relative;
+  overflow: hidden;
+  transition: all 0.3s ease;
+}
+
+.gate-card:hover {
+  border-color: var(--border-accent);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
+.gate-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 14px;
+}
+
+.gate-name {
+  font-family: var(--font-display);
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.gate-rank {
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  background: var(--bg-elevated);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 700;
+  font-family: var(--font-display);
+  color: var(--accent-gold-soft);
+}
+
+.gate-card.top-1 .gate-rank { background: var(--gradient-gold); color: var(--bg-primary); }
+
+.gate-stats {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 14px;
+  font-size: 12px;
+}
+
+.gate-stat-label { color: var(--text-tertiary); margin-bottom: 2px; }
+.gate-stat-value {
+  font-family: var(--font-numeric);
+  font-size: 18px;
+  font-weight: 700;
+}
+.gate-stat-value.money { color: var(--accent-gold-soft); }
+
+.gate-bar {
+  height: 6px;
+  background: var(--bg-elevated);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.gate-bar-fill {
+  height: 100%;
+  background: var(--gradient-gold);
+  border-radius: 3px;
+  transition: width 1s ease;
+}
+
+/* قسم المركبات */
+.vehicles-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+  gap: 20px;
+  margin-bottom: 28px;
+}
+
+.vehicle-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 24px;
+  position: relative;
+  overflow: hidden;
+}
+
+.vehicle-card::before {
+  content: '';
+  position: absolute;
+  top: 0; right: 0;
+  width: 120px; height: 120px;
+  background: radial-gradient(circle at top right, rgba(212, 175, 55, 0.1) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+.plate-display {
+  background: linear-gradient(180deg, #fff 0%, #f1f5f9 100%);
+  color: #0a1628;
+  border-radius: var(--radius-md);
+  padding: 14px 20px;
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 16px;
+  border: 2px solid #94a3b8;
+  position: relative;
+  z-index: 1;
+}
+
+.plate-emirate {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  color: #ef4444;
+  text-transform: uppercase;
+}
+
+.plate-number {
+  font-family: var(--font-accent);
+  font-size: 28px;
+  font-weight: 800;
+  letter-spacing: 1px;
+  line-height: 1.1;
+}
+
+.vehicle-stats {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  position: relative;
+  z-index: 1;
+}
+
+.vehicle-stat {
+  background: var(--bg-elevated);
+  padding: 12px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+}
+
+.vehicle-stat-label {
+  font-size: 11px;
+  color: var(--text-tertiary);
+  margin-bottom: 4px;
+}
+
+.vehicle-stat-value {
+  font-family: var(--font-numeric);
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.vehicle-stat-value.gold { color: var(--accent-gold-soft); }
+.vehicle-stat-value.emerald { color: var(--accent-emerald-soft); }
+
+/* الاستجابة */
+@media (max-width: 968px) {
+  .sidebar {
+    transform: translateX(100%);
+  }
+  .sidebar.open {
+    transform: translateX(0);
+  }
+  .main {
+    margin-right: 0;
+  }
+  .menu-toggle {
+    display: flex;
+  }
+  .topbar {
+    padding: 0 16px;
+  }
+  .content {
+    padding: 20px 16px;
+  }
+  .topbar-actions .btn-text {
+    display: none;
+  }
+}
+
+.overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.5);
+  z-index: 99;
+}
+
+.overlay.show { display: block; }
+
+/* إضافات للطباعة */
+@media print {
+  .sidebar, .topbar, .menu-toggle, .pagination, .table-controls { display: none !important; }
+  .main { margin-right: 0; }
+  body { background: white; color: black; }
+  .chart-card, .kpi-card, .table-card { break-inside: avoid; border: 1px solid #ccc; }
+}
+
+/* شريط التمرير */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--bg-secondary);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--bg-elevated);
+  border-radius: 5px;
+  border: 2px solid var(--bg-secondary);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--accent-gold);
+}
+
+/* رسائل فارغة */
+.empty-state {
+  padding: 60px 20px;
+  text-align: center;
+  color: var(--text-tertiary);
+}
+
+.empty-state svg {
+  width: 48px;
+  height: 48px;
+  margin-bottom: 16px;
+  stroke: currentColor;
+  stroke-width: 1.5;
+  fill: none;
+  opacity: 0.5;
+}
+
+/* ============== السحب والإفلات ============== */
+.drop-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(10, 22, 40, 0.92);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  z-index: 1000;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+
+.drop-overlay.active {
+  display: flex;
+  pointer-events: auto;
+}
+
+.drop-zone {
+  border: 3px dashed var(--accent-gold);
+  border-radius: var(--radius-xl);
+  padding: 60px 80px;
+  text-align: center;
+  background: rgba(212, 175, 55, 0.05);
+  max-width: 500px;
+  animation: pulse 2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { transform: scale(1); border-color: var(--accent-gold); }
+  50% { transform: scale(1.02); border-color: var(--accent-gold-soft); }
+}
+
+.drop-zone svg {
+  width: 64px;
+  height: 64px;
+  stroke: var(--accent-gold);
+  stroke-width: 1.5;
+  fill: none;
+  margin-bottom: 20px;
+}
+
+.drop-zone-title {
+  font-family: var(--font-display);
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--accent-gold-soft);
+  margin-bottom: 8px;
+}
+
+.drop-zone-subtitle {
+  font-size: 14px;
+  color: var(--text-secondary);
+}
+
+/* ============== الإشعارات (Toast) ============== */
+.toast-container {
+  position: fixed;
+  bottom: 24px;
+  left: 24px;
+  z-index: 2000;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  pointer-events: none;
+}
+
+.toast {
+  background: var(--bg-card);
+  border: 1px solid var(--border-strong);
+  border-right: 4px solid var(--accent-emerald);
+  border-radius: var(--radius-md);
+  padding: 14px 18px;
+  min-width: 280px;
+  max-width: 380px;
+  box-shadow: var(--shadow-lg);
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  animation: toastIn 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+  pointer-events: auto;
+}
+
+.toast.error {
+  border-right-color: var(--accent-crimson);
+}
+
+.toast.info {
+  border-right-color: var(--accent-blue);
+}
+
+.toast.warning {
+  border-right-color: var(--accent-amber);
+}
+
+@keyframes toastIn {
+  from { transform: translateX(-30px); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}
+
+.toast-icon {
+  width: 24px;
+  height: 24px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(16, 185, 129, 0.15);
+  color: var(--accent-emerald-soft);
+}
+
+.toast.error .toast-icon { background: rgba(239, 68, 68, 0.15); color: var(--accent-crimson); }
+.toast.info .toast-icon { background: rgba(59, 130, 246, 0.15); color: var(--accent-blue); }
+.toast.warning .toast-icon { background: rgba(245, 158, 11, 0.15); color: var(--accent-amber); }
+
+.toast-icon svg {
+  width: 14px;
+  height: 14px;
+  stroke: currentColor;
+  stroke-width: 2.5;
+  fill: none;
+}
+
+.toast-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.toast-title {
+  font-weight: 600;
+  font-size: 13px;
+  margin-bottom: 2px;
+}
+
+.toast-message {
+  font-size: 12px;
+  color: var(--text-secondary);
+  line-height: 1.4;
+}
+
+.toast-close {
+  background: transparent;
+  border: none;
+  color: var(--text-tertiary);
+  cursor: pointer;
+  padding: 0;
+  font-size: 18px;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.toast-close:hover { color: var(--text-primary); }
+
+/* ============== شارة العداد بالقائمة ============== */
+.nav-badge {
+  margin-right: auto;
+  background: var(--accent-gold);
+  color: var(--bg-primary);
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 10px;
+  min-width: 22px;
+  text-align: center;
+  font-family: var(--font-numeric);
+}
+
+.nav-badge:empty,
+.nav-badge[data-empty="true"] {
+  display: none;
+}
+
+/* ============== قسم إدارة الملفات ============== */
+.files-summary {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.files-summary-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 20px;
+}
+
+.files-summary-card .label {
+  font-size: 12px;
+  color: var(--text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  font-weight: 600;
+  margin-bottom: 10px;
+}
+
+.files-summary-card .value {
+  font-family: var(--font-numeric);
+  font-size: 28px;
+  font-weight: 800;
+  color: var(--accent-gold-soft);
+  line-height: 1;
+}
+
+.files-summary-card .sub {
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin-top: 6px;
+}
+
+.files-actions {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+
+.btn-danger {
+  background: rgba(239, 68, 68, 0.1);
+  color: var(--accent-crimson);
+  border-color: rgba(239, 68, 68, 0.3);
+}
+
+.btn-danger:hover {
+  background: rgba(239, 68, 68, 0.2);
+  border-color: var(--accent-crimson);
+  color: #fca5a5;
+}
+
+.files-list {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+}
+
+.file-item {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border);
+  transition: all 0.2s ease;
+  cursor: pointer;
+  position: relative;
+}
+
+.file-item:last-child { border-bottom: none; }
+.file-item:hover { background: var(--bg-card-hover); }
+
+/* الحالة المحددة - تأثير بصري واضح */
+.file-item.active {
+  background: linear-gradient(135deg, rgba(212, 175, 55, 0.12) 0%, rgba(212, 175, 55, 0.04) 100%);
+  border-bottom-color: var(--border-accent);
+}
+
+.file-item.active::before {
+  content: '';
+  position: absolute;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  background: var(--accent-gold);
+  box-shadow: 0 0 12px rgba(212, 175, 55, 0.4);
+}
+
+.file-item.active .file-icon {
+  border-color: rgba(212, 175, 55, 0.4);
+  background: linear-gradient(135deg, rgba(212, 175, 55, 0.2), rgba(212, 175, 55, 0.05));
+  color: var(--accent-gold-soft);
+}
+
+.file-item.active .file-name {
+  color: var(--accent-gold-soft);
+}
+
+/* بطاقة "كل الملفات" مميزة */
+.file-item-all {
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.06) 0%, transparent 100%);
+  border-bottom: 2px solid var(--border-strong);
+}
+
+.file-item-all .file-icon-all {
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(59, 130, 246, 0.05));
+  border-color: rgba(59, 130, 246, 0.3);
+  color: #60a5fa;
+}
+
+.file-item-all.active {
+  background: linear-gradient(135deg, rgba(212, 175, 55, 0.15) 0%, rgba(59, 130, 246, 0.05) 100%);
+}
+
+.file-item-all.active .file-icon-all {
+  background: linear-gradient(135deg, rgba(212, 175, 55, 0.2), rgba(212, 175, 55, 0.05));
+  border-color: rgba(212, 175, 55, 0.4);
+  color: var(--accent-gold-soft);
+}
+
+/* شارة "معروض الآن" */
+.file-active-badge {
+  display: inline-block;
+  margin-right: 10px;
+  padding: 2px 9px;
+  background: var(--accent-gold);
+  color: var(--bg-primary);
+  font-size: 10px;
+  font-weight: 700;
+  border-radius: 10px;
+  letter-spacing: 0.3px;
+  vertical-align: middle;
+  animation: badgePop 0.3s ease;
+}
+
+@keyframes badgePop {
+  from { transform: scale(0.6); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+
+/* مؤشر الاختيار */
+.file-select-indicator {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  font-weight: 700;
+  flex-shrink: 0;
+  background: transparent;
+  color: transparent;
+  transition: all 0.2s ease;
+}
+
+.file-item.active .file-select-indicator {
+  background: var(--accent-gold);
+  color: var(--bg-primary);
+}
+
+/* ============== شريط الفلتر النشط ============== */
+.filter-banner {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 20px;
+  margin-bottom: 20px;
+  background: linear-gradient(135deg, rgba(212, 175, 55, 0.1) 0%, rgba(212, 175, 55, 0.03) 100%);
+  border: 1px solid var(--border-accent);
+  border-right: 4px solid var(--accent-gold);
+  border-radius: var(--radius-md);
+  animation: bannerSlide 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes bannerSlide {
+  from { opacity: 0; transform: translateY(-8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.filter-banner-icon {
+  width: 36px;
+  height: 36px;
+  background: rgba(212, 175, 55, 0.15);
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--accent-gold-soft);
+  flex-shrink: 0;
+}
+
+.filter-banner-icon svg {
+  width: 18px; height: 18px;
+}
+
+.filter-banner-text {
+  flex: 1;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  font-size: 14px;
+}
+
+.filter-banner-label {
+  color: var(--text-tertiary);
+  font-size: 12px;
+}
+
+.filter-banner-text strong {
+  color: var(--accent-gold-soft);
+  font-weight: 700;
+}
+
+.filter-banner-stats {
+  color: var(--text-secondary);
+  font-size: 12px;
+  margin-right: 8px;
+}
+
+.filter-banner-clear {
+  width: 32px;
+  height: 32px;
+  background: transparent;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  color: var(--text-secondary);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: all 0.2s ease;
+}
+
+.filter-banner-clear svg {
+  width: 14px; height: 14px;
+}
+
+.filter-banner-clear:hover {
+  background: var(--accent-crimson);
+  border-color: var(--accent-crimson);
+  color: white;
+}
+
+.file-icon {
+  width: 44px;
+  height: 44px;
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.15), rgba(16, 185, 129, 0.05));
+  border: 1px solid rgba(16, 185, 129, 0.2);
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--accent-emerald-soft);
+  flex-shrink: 0;
+}
+
+.file-icon svg {
+  width: 22px;
+  height: 22px;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  fill: none;
+}
+
+.file-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.file-name {
+  font-weight: 600;
+  font-size: 14px;
+  margin-bottom: 4px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.file-meta {
+  display: flex;
+  gap: 14px;
+  font-size: 12px;
+  color: var(--text-tertiary);
+  flex-wrap: wrap;
+}
+
+.file-meta-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.file-meta-item strong {
+  color: var(--text-secondary);
+  font-weight: 600;
+  font-family: var(--font-numeric);
+}
+
+.file-actions {
+  display: flex;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.file-action-btn {
+  width: 34px;
+  height: 34px;
+  border: 1px solid var(--border-strong);
+  background: var(--bg-elevated);
+  border-radius: var(--radius-sm);
+  color: var(--text-secondary);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.file-action-btn:hover {
+  background: rgba(239, 68, 68, 0.15);
+  border-color: var(--accent-crimson);
+  color: #fca5a5;
+}
+
+.file-action-btn svg {
+  width: 16px;
+  height: 16px;
+  stroke: currentColor;
+  stroke-width: 2;
+  fill: none;
+}
+
+.files-empty {
+  padding: 60px 20px;
+  text-align: center;
+  color: var(--text-tertiary);
+}
+
+.files-empty svg {
+  width: 56px;
+  height: 56px;
+  margin-bottom: 16px;
+  stroke: currentColor;
+  stroke-width: 1.3;
+  fill: none;
+  opacity: 0.4;
+}
+
+.files-empty .title {
+  font-family: var(--font-display);
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin-bottom: 6px;
+}
+
+.files-empty .desc {
+  font-size: 13px;
+  margin-bottom: 20px;
+}
+
+/* مربع حوار التأكيد */
+.confirm-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(10, 22, 40, 0.85);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  z-index: 1500;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+.confirm-overlay.active { display: flex; }
+
+.confirm-dialog {
+  background: var(--bg-card);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-lg);
+  padding: 28px;
+  max-width: 440px;
+  width: 100%;
+  box-shadow: var(--shadow-lg);
+  animation: dialogIn 0.25s ease;
+}
+
+@keyframes dialogIn {
+  from { transform: scale(0.95); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+
+.confirm-icon {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: rgba(239, 68, 68, 0.1);
+  border: 2px solid rgba(239, 68, 68, 0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--accent-crimson);
+  margin: 0 auto 18px;
+}
+
+.confirm-icon svg {
+  width: 28px;
+  height: 28px;
+  stroke: currentColor;
+  stroke-width: 2;
+  fill: none;
+}
+
+.confirm-title {
+  font-family: var(--font-display);
+  font-size: 18px;
+  font-weight: 700;
+  text-align: center;
+  margin-bottom: 8px;
+}
+
+.confirm-message {
+  text-align: center;
+  font-size: 14px;
+  color: var(--text-secondary);
+  margin-bottom: 22px;
+  line-height: 1.6;
+}
+
+.confirm-buttons {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+}
+
+</style>
+</head>
+<body>
+
+<!-- الشريط الجانبي -->
+<aside class="sidebar" id="sidebar">
+  <div class="sidebar-header">
+    <div class="logo-mark">س</div>
+    <div class="logo-text">
+      <h1>سالك</h1>
+      <p>تحليل الرحلات</p>
+    </div>
+  </div>
+  <nav class="sidebar-nav">
+    <div class="nav-section-title">القائمة الرئيسية</div>
+    <div class="nav-item active" data-section="overview">
+      <svg class="nav-icon" viewBox="0 0 24 24"><path d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
+      <span>نظرة عامة</span>
+    </div>
+    <div class="nav-item" data-section="trips">
+      <svg class="nav-icon" viewBox="0 0 24 24"><path d="M9 17a2 2 0 11-4 0 2 2 0 014 0zM19 17a2 2 0 11-4 0 2 2 0 014 0z"/><path d="M13 16V6a1 1 0 00-1-1H4a1 1 0 00-1 1v10a1 1 0 001 1h1m8-1a1 1 0 01-1 1H9m4-1V8a1 1 0 011-1h2.586a1 1 0 01.707.293l3.414 3.414a1 1 0 01.293.707V16a1 1 0 01-1 1h-1m-6-1a1 1 0 001 1h1M5 17a2 2 0 104 0m-4 0a2 2 0 114 0m6 0a2 2 0 104 0m-4 0a2 2 0 114 0"/></svg>
+      <span>سجل الرحلات</span>
+    </div>
+    <div class="nav-item" data-section="gates">
+      <svg class="nav-icon" viewBox="0 0 24 24"><path d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg>
+      <span>البوابات</span>
+    </div>
+    <div class="nav-item" data-section="vehicles">
+      <svg class="nav-icon" viewBox="0 0 24 24"><path d="M8 17l4 4 4-4m-4-5v9M20.88 18.09A5 5 0 0018 9h-1.26A8 8 0 103 16.29"/></svg>
+      <span>المركبات</span>
+    </div>
+    <div class="nav-item" data-section="analytics">
+      <svg class="nav-icon" viewBox="0 0 24 24"><path d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
+      <span>التحليلات الزمنية</span>
+    </div>
+    <div class="nav-item" data-section="files">
+      <svg class="nav-icon" viewBox="0 0 24 24"><path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+      <span>إدارة الملفات</span>
+      <span class="nav-badge" id="navFilesBadge">0</span>
+    </div>
+
+    <div class="nav-section-title" style="margin-top: 20px;">الأدوات</div>
+    <div class="nav-item" id="navUpload">
+      <svg class="nav-icon" viewBox="0 0 24 24"><path d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/></svg>
+      <span>إضافة ملف Excel</span>
+    </div>
+    <div class="nav-item" id="navExport">
+      <svg class="nav-icon" viewBox="0 0 24 24"><path d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+      <span>تصدير البيانات</span>
+    </div>
+    <div class="nav-item" id="navPrint">
+      <svg class="nav-icon" viewBox="0 0 24 24"><path d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/></svg>
+      <span>طباعة التقرير</span>
+    </div>
+  </nav>
+  <div class="sidebar-footer">
+    لوحة قيادة سالك &mdash; إصدار 1.0
+  </div>
+</aside>
+
+<div class="overlay" id="overlay"></div>
+
+<!-- منطقة السحب والإفلات -->
+<div class="drop-overlay" id="dropOverlay">
+  <div class="drop-zone">
+    <svg viewBox="0 0 24 24"><path d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/></svg>
+    <div class="drop-zone-title">أفلت ملف Excel هنا</div>
+    <div class="drop-zone-subtitle">يدعم صيغ XLS, XLSX, CSV</div>
+  </div>
+</div>
+
+<!-- حاوية الإشعارات -->
+<div class="toast-container" id="toastContainer"></div>
+
+<main class="main">
+  <header class="topbar">
+    <div style="display: flex; align-items: center; gap: 14px;">
+      <button class="menu-toggle" id="menuToggle">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
+      </button>
+      <div class="topbar-title">
+        <h2 id="pageTitle">نظرة عامة</h2>
+        <p id="pageSubtitle">ملخص شامل عن جميع الرحلات المسجلة</p>
+      </div>
+    </div>
+    <div class="topbar-actions">
+      <button class="btn" onclick="document.getElementById('fileInput').click()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/></svg>
+        <span class="btn-text">إضافة ملف</span>
+      </button>
+      <button class="btn" onclick="exportCSV()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+        <span class="btn-text">تصدير CSV</span>
+      </button>
+      <button class="btn btn-primary" onclick="window.print()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/></svg>
+        <span class="btn-text">طباعة</span>
+      </button>
+      <input type="file" id="fileInput" accept=".xls,.xlsx,.csv" style="display:none" onchange="handleFileUpload(event)">
+    </div>
+  </header>
+
+  <div class="content">
+
+    <!-- شريط الفلتر النشط -->
+    <div id="activeFilterBanner" class="filter-banner" style="display: none;">
+      <div class="filter-banner-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"/></svg>
+      </div>
+      <div class="filter-banner-text">
+        <span class="filter-banner-label">العرض الحالي:</span>
+        <strong id="activeFilterName">جميع الملفات</strong>
+        <span class="filter-banner-stats" id="activeFilterStats"></span>
+      </div>
+      <button class="filter-banner-clear" onclick="selectFile(null)" title="عرض كل الملفات">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 18L18 6M6 6l12 12"/></svg>
+      </button>
+    </div>
+
+    <!-- ========== قسم النظرة العامة ========== -->
+    <section class="page-section active" id="section-overview">
+
+      <!-- بطاقات KPI -->
+      <div class="kpi-grid">
+        <div class="kpi-card gold">
+          <div class="kpi-header">
+            <div class="kpi-label">إجمالي المبلغ</div>
+            <div class="kpi-icon-box">
+              <svg viewBox="0 0 24 24"><path d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+            </div>
+          </div>
+          <div class="kpi-value" id="kpiTotal">0<span class="kpi-unit">د.إ</span></div>
+          <div class="kpi-meta">
+            <span class="kpi-trend up">المجموع الكلي</span>
+            <span id="kpiTotalDays"></span>
+          </div>
+        </div>
+
+        <div class="kpi-card emerald">
+          <div class="kpi-header">
+            <div class="kpi-label">عدد الرحلات</div>
+            <div class="kpi-icon-box">
+              <svg viewBox="0 0 24 24"><path d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3"/></svg>
+            </div>
+          </div>
+          <div class="kpi-value" id="kpiTrips">0</div>
+          <div class="kpi-meta">
+            <span class="kpi-trend neutral" id="kpiAvgPerDay"></span>
+            <span>رحلة في اليوم</span>
+          </div>
+        </div>
+
+        <div class="kpi-card blue">
+          <div class="kpi-header">
+            <div class="kpi-label">متوسط التكلفة</div>
+            <div class="kpi-icon-box">
+              <svg viewBox="0 0 24 24"><path d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
+            </div>
+          </div>
+          <div class="kpi-value" id="kpiAvg">0<span class="kpi-unit">د.إ</span></div>
+          <div class="kpi-meta">
+            <span>للرحلة الواحدة</span>
+          </div>
+        </div>
+
+        <div class="kpi-card amber">
+          <div class="kpi-header">
+            <div class="kpi-label">البوابة الأكثر استخداماً</div>
+            <div class="kpi-icon-box">
+              <svg viewBox="0 0 24 24"><path d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg>
+            </div>
+          </div>
+          <div class="kpi-value" id="kpiTopGate" style="font-size: 22px;">-</div>
+          <div class="kpi-meta">
+            <span id="kpiTopGateCount"></span>
+          </div>
+        </div>
+      </div>
+
+      <!-- ملخص ذكي -->
+      <div class="insights-card">
+        <div class="insights-header">
+          <div class="insights-icon">
+            <svg viewBox="0 0 24 24"><path d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/></svg>
+          </div>
+          <div>
+            <div class="insights-title">تحليل ذكي</div>
+            <div class="insights-subtitle">رؤى مستخرجة تلقائياً من البيانات</div>
+          </div>
+        </div>
+        <div class="insights-grid" id="insightsGrid"></div>
+      </div>
+
+      <!-- الرسوم البيانية -->
+      <div class="charts-grid">
+        <div class="chart-card">
+          <div class="chart-header">
+            <div>
+              <div class="chart-title">الإنفاق اليومي</div>
+              <div class="chart-subtitle">تطور المبلغ الإجمالي عبر الأيام</div>
+            </div>
+            <div class="chart-tabs">
+              <button class="chart-tab active" data-metric="amount">المبلغ</button>
+              <button class="chart-tab" data-metric="count">عدد الرحلات</button>
+            </div>
+          </div>
+          <div class="chart-body tall">
+            <canvas id="dailyChart"></canvas>
+          </div>
+        </div>
+
+        <div class="chart-card">
+          <div class="chart-header">
+            <div>
+              <div class="chart-title">توزيع الاتجاهات</div>
+              <div class="chart-subtitle">حسب وجهة العبور</div>
+            </div>
+          </div>
+          <div class="chart-body tall">
+            <canvas id="directionChart"></canvas>
+          </div>
+        </div>
+      </div>
+
+      <div class="charts-row-2">
+        <div class="chart-card">
+          <div class="chart-header">
+            <div>
+              <div class="chart-title">أعلى البوابات استخداماً</div>
+              <div class="chart-subtitle">عدد المرور لكل بوابة</div>
+            </div>
+          </div>
+          <div class="chart-body">
+            <canvas id="gatesChart"></canvas>
+          </div>
+        </div>
+
+        <div class="chart-card">
+          <div class="chart-header">
+            <div>
+              <div class="chart-title">التوزيع حسب الساعة</div>
+              <div class="chart-subtitle">أنماط استخدام البوابات على مدار اليوم</div>
+            </div>
+          </div>
+          <div class="chart-body">
+            <canvas id="hourChart"></canvas>
+          </div>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- ========== قسم سجل الرحلات ========== -->
+    <section class="page-section" id="section-trips">
+      <div class="table-card">
+        <div class="table-header">
+          <div class="table-title-row">
+            <div class="chart-title">جميع الرحلات</div>
+            <span class="table-badge" id="tableBadge">0 رحلة</span>
+          </div>
+          <div class="table-controls">
+            <div class="search-box">
+              <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+              <input type="text" id="searchInput" placeholder="ابحث برقم الرحلة أو اللوحة...">
+            </div>
+            <select class="filter-select" id="filterDirection">
+              <option value="">كل الاتجاهات</option>
+            </select>
+            <select class="filter-select" id="filterGate">
+              <option value="">كل البوابات</option>
+            </select>
+            <select class="filter-select" id="filterPlate">
+              <option value="">كل المركبات</option>
+            </select>
+          </div>
+        </div>
+        <div class="table-wrapper">
+          <table class="data-table" id="dataTable">
+            <thead>
+              <tr>
+                <th data-sort="trip_date_iso">التاريخ <span class="sort-icon">▼</span></th>
+                <th data-sort="trip_time_24">الوقت <span class="sort-icon">▼</span></th>
+                <th data-sort="plate">رقم اللوحة <span class="sort-icon">▼</span></th>
+                <th data-sort="direction">الاتجاه <span class="sort-icon">▼</span></th>
+                <th data-sort="gate">البوابة <span class="sort-icon">▼</span></th>
+                <th data-sort="amount">المبلغ <span class="sort-icon">▼</span></th>
+                <th data-sort="trip_id">رقم الرحلة <span class="sort-icon">▼</span></th>
+              </tr>
+            </thead>
+            <tbody id="tableBody"></tbody>
+          </table>
+        </div>
+        <div class="table-footer">
+          <div id="tableInfo">عرض 0 من 0</div>
+          <div class="pagination" id="pagination"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========== قسم البوابات ========== -->
+    <section class="page-section" id="section-gates">
+      <div class="charts-grid" style="grid-template-columns: 1fr 1fr;">
+        <div class="chart-card">
+          <div class="chart-header">
+            <div>
+              <div class="chart-title">إيرادات البوابات</div>
+              <div class="chart-subtitle">المبلغ المحصل من كل بوابة</div>
+            </div>
+          </div>
+          <div class="chart-body tall">
+            <canvas id="gatesRevenueChart"></canvas>
+          </div>
+        </div>
+        <div class="chart-card">
+          <div class="chart-header">
+            <div>
+              <div class="chart-title">حصة كل بوابة من إجمالي الرحلات</div>
+              <div class="chart-subtitle">النسبة المئوية</div>
+            </div>
+          </div>
+          <div class="chart-body tall">
+            <canvas id="gatesShareChart"></canvas>
+          </div>
+        </div>
+      </div>
+      <div class="gates-grid" id="gatesGrid"></div>
+    </section>
+
+    <!-- ========== قسم المركبات ========== -->
+    <section class="page-section" id="section-vehicles">
+      <div class="vehicles-grid" id="vehiclesGrid"></div>
+      <div class="charts-row-2">
+        <div class="chart-card">
+          <div class="chart-header">
+            <div>
+              <div class="chart-title">مقارنة الإنفاق اليومي للمركبات</div>
+              <div class="chart-subtitle">المبلغ الإجمالي لكل مركبة عبر الأيام</div>
+            </div>
+          </div>
+          <div class="chart-body tall">
+            <canvas id="vehicleDailyChart"></canvas>
+          </div>
+        </div>
+        <div class="chart-card">
+          <div class="chart-header">
+            <div>
+              <div class="chart-title">توزيع البوابات لكل مركبة</div>
+              <div class="chart-subtitle">عدد المرور حسب البوابة</div>
+            </div>
+          </div>
+          <div class="chart-body tall">
+            <canvas id="vehicleGatesChart"></canvas>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========== قسم التحليلات الزمنية ========== -->
+    <section class="page-section" id="section-analytics">
+      <div class="kpi-grid">
+        <div class="kpi-card gold">
+          <div class="kpi-header">
+            <div class="kpi-label">أكثر يوم مزدحم</div>
+            <div class="kpi-icon-box">
+              <svg viewBox="0 0 24 24"><path d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+            </div>
+          </div>
+          <div class="kpi-value" id="busyDay" style="font-size: 22px;">-</div>
+          <div class="kpi-meta"><span id="busyDayCount"></span></div>
+        </div>
+        <div class="kpi-card emerald">
+          <div class="kpi-header">
+            <div class="kpi-label">أعلى ساعة استخدام</div>
+            <div class="kpi-icon-box">
+              <svg viewBox="0 0 24 24"><path d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+            </div>
+          </div>
+          <div class="kpi-value" id="peakHour" style="font-size: 22px;">-</div>
+          <div class="kpi-meta"><span id="peakHourCount"></span></div>
+        </div>
+        <div class="kpi-card blue">
+          <div class="kpi-header">
+            <div class="kpi-label">عدد الأيام النشطة</div>
+            <div class="kpi-icon-box">
+              <svg viewBox="0 0 24 24"><path d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+            </div>
+          </div>
+          <div class="kpi-value" id="activeDays">0</div>
+          <div class="kpi-meta"><span>يوم نشط</span></div>
+        </div>
+        <div class="kpi-card amber">
+          <div class="kpi-header">
+            <div class="kpi-label">الفترة الأكثر استخداماً</div>
+            <div class="kpi-icon-box">
+              <svg viewBox="0 0 24 24"><path d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/></svg>
+            </div>
+          </div>
+          <div class="kpi-value" id="peakPeriod" style="font-size: 22px;">-</div>
+          <div class="kpi-meta"><span id="peakPeriodPct"></span></div>
+        </div>
+      </div>
+
+      <div class="charts-grid">
+        <div class="chart-card">
+          <div class="chart-header">
+            <div>
+              <div class="chart-title">الخط الزمني الكامل</div>
+              <div class="chart-subtitle">رحلات كل يوم بمخطط مساحي</div>
+            </div>
+          </div>
+          <div class="chart-body tall">
+            <canvas id="timelineChart"></canvas>
+          </div>
+        </div>
+        <div class="chart-card">
+          <div class="chart-header">
+            <div>
+              <div class="chart-title">توزيع الفترات اليومية</div>
+              <div class="chart-subtitle">صباحاً / ظهراً / مساءً / ليلاً</div>
+            </div>
+          </div>
+          <div class="chart-body tall">
+            <canvas id="periodChart"></canvas>
+          </div>
+        </div>
+      </div>
+
+      <div class="chart-card" style="margin-bottom: 24px;">
+        <div class="chart-header">
+          <div>
+            <div class="chart-title">خريطة حرارية للأنشطة</div>
+            <div class="chart-subtitle">كثافة الرحلات حسب الساعة في كل يوم من أيام الأسبوع</div>
+          </div>
+        </div>
+        <div id="heatmapContainer" style="padding: 16px 0;"></div>
+      </div>
+    </section>
+
+    <!-- ========== قسم إدارة الملفات ========== -->
+    <section class="page-section" id="section-files">
+      <div class="files-summary">
+        <div class="files-summary-card">
+          <div class="label">عدد الملفات</div>
+          <div class="value" id="filesCount">0</div>
+          <div class="sub">ملف Excel مرفوع</div>
+        </div>
+        <div class="files-summary-card">
+          <div class="label">إجمالي الرحلات</div>
+          <div class="value" id="filesTotalTrips">0</div>
+          <div class="sub">رحلة من جميع الملفات</div>
+        </div>
+        <div class="files-summary-card">
+          <div class="label">إجمالي المبلغ</div>
+          <div class="value" id="filesTotalAmount">0</div>
+          <div class="sub">درهم إماراتي</div>
+        </div>
+        <div class="files-summary-card">
+          <div class="label">آخر تحديث</div>
+          <div class="value" id="filesLastUpdate" style="font-size: 18px;">-</div>
+          <div class="sub" id="filesLastUpdateTime"></div>
+        </div>
+      </div>
+
+      <div class="files-actions">
+        <button class="btn btn-primary" onclick="document.getElementById('fileInput').click()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/></svg>
+          <span>إضافة ملف جديد</span>
+        </button>
+        <button class="btn" onclick="exportCSV()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+          <span>تصدير الكل CSV</span>
+        </button>
+        <button class="btn btn-danger" onclick="confirmClearAll()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+          <span>تفريغ كل البيانات</span>
+        </button>
+      </div>
+
+      <div class="files-list" id="filesList"></div>
+    </section>
+
+  </div>
+</main>
+
+<!-- مربع حوار التأكيد -->
+<div class="confirm-overlay" id="confirmOverlay">
+  <div class="confirm-dialog">
+    <div class="confirm-icon">
+      <svg viewBox="0 0 24 24"><path d="M12 9v2m0 4h.01M5 19h14a2 2 0 001.84-2.75L13.74 4a2 2 0 00-3.48 0l-7.1 12.25A2 2 0 005 19z"/></svg>
+    </div>
+    <div class="confirm-title" id="confirmTitle">تأكيد الإجراء</div>
+    <div class="confirm-message" id="confirmMessage">هل أنت متأكد؟</div>
+    <div class="confirm-buttons">
+      <button class="btn" onclick="closeConfirm()">إلغاء</button>
+      <button class="btn btn-danger" id="confirmBtn" onclick="executeConfirm()">تأكيد</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ============== البيانات الأولية المضمّنة ==============
+const INITIAL_DATA = [{"amount": 6, "plate": "83078", "card": "4495301", "direction": "الشارقة", "gate": "جسر المكتوم", "trip_date_iso": "2026-05-09", "trip_time": "04:13:52م", "trip_time_24": "16:13:52", "hour_24": 16, "trip_id": "21295468", "datetime": "2026-05-09T16:13:52"}, {"amount": 4, "plate": "83078", "card": "4495301", "direction": "أبو ظبي", "gate": "جسر القرهود الجديد", "trip_date_iso": "2026-05-09", "trip_time": "03:45:32م", "trip_time_24": "15:45:32", "hour_24": 15, "trip_id": "70321295409", "datetime": "2026-05-09T15:45:32"}, {"amount": 4, "plate": "83078", "card": "4495301", "direction": "أبو ظبي", "gate": "شمال الممزر", "trip_date_iso": "2026-05-09", "trip_time": "03:38:26م", "trip_time_24": "15:38:26", "hour_24": 15, "trip_id": "50821195994", "datetime": "2026-05-09T15:38:26"}, {"amount": 4, "plate": "90785", "card": "5664260", "direction": "الشارقة", "gate": "جنوب الممزر", "trip_date_iso": "2026-05-09", "trip_time": "12:14:36م", "trip_time_24": "12:14:36", "hour_24": 12, "trip_id": "90820795180", "datetime": "2026-05-09T12:14:36"}, {"amount": 4, "plate": "90785", "card": "5664260", "direction": "الشارقة", "gate": "جسر المكتوم", "trip_date_iso": "2026-05-09", "trip_time": "12:06:50م", "trip_time_24": "12:06:50", "hour_24": 12, "trip_id": "80720795066", "datetime": "2026-05-09T12:06:50"}, {"amount": 4, "plate": "90785", "card": "5664260", "direction": "أبو ظبي", "gate": "جسر القرهود الجديد", "trip_date_iso": "2026-05-09", "trip_time": "11:02:04ص", "trip_time_24": "11:02:04", "hour_24": 11, "trip_id": "920695155", "datetime": "2026-05-09T11:02:04"}, {"amount": 6, "plate": "90785", "card": "5664260", "direction": "أبو ظبي", "gate": "شمال الممزر", "trip_date_iso": "2026-05-09", "trip_time": "09:44:37ص", "trip_time_24": "09:44:37", "hour_24": 9, "trip_id": "70420595836", "datetime": "2026-05-09T09:44:37"}, {"amount": 6, "plate": "90785", "card": "5664260", "direction": "الشارقة", "gate": "جنوب الممزر", "trip_date_iso": "2026-05-08", "trip_time": "07:50:51م", "trip_time_24": "19:50:51", "hour_24": 19, "trip_id": "50729694408", "datetime": "2026-05-08T19:50:51"}, {"amount": 6, "plate": "90785", "card": "5664260", "direction": "الشارقة", "gate": "نفق المطار", "trip_date_iso": "2026-05-08", "trip_time": "06:51:08م", "trip_time_24": "18:51:08", "hour_24": 18, "trip_id": "80129494783", "datetime": "2026-05-08T18:51:08"}, {"amount": 6, "plate": "90785", "card": "5664260", "direction": "الشارقة", "gate": "جسر القرهود الجديد", "trip_date_iso": "2026-05-08", "trip_time": "06:36:56م", "trip_time_24": "18:36:56", "hour_24": 18, "trip_id": "10329494251", "datetime": "2026-05-08T18:36:56"}, {"amount": 6, "plate": "90785", "card": "5664260", "direction": "أبو ظبي", "gate": "جسر القرهود الجديد", "trip_date_iso": "2026-05-08", "trip_time": "05:32:13م", "trip_time_24": "17:32:13", "hour_24": 17, "trip_id": "90929294697", "datetime": "2026-05-08T17:32:13"}, {"amount": 6, "plate": "90785", "card": "5664260", "direction": "أبو ظبي", "gate": "شمال الممزر", "trip_date_iso": "2026-05-08", "trip_time": "05:25:35م", "trip_time_24": "17:25:35", "hour_24": 17, "trip_id": "50429294981", "datetime": "2026-05-08T17:25:35"}, {"amount": 4, "plate": "90785", "card": "5664260", "direction": "الشارقة", "gate": "جنوب الممزر", "trip_date_iso": "2026-05-08", "trip_time": "11:09:54ص", "trip_time_24": "11:09:54", "hour_24": 11, "trip_id": "30328594250", "datetime": "2026-05-08T11:09:54"}, {"amount": 6, "plate": "90785", "card": "5664260", "direction": "الشارقة", "gate": "جنوب الممزر", "trip_date_iso": "2026-05-07", "trip_time": "04:39:43م", "trip_time_24": "16:39:43", "hour_24": 16, "trip_id": "60427094928", "datetime": "2026-05-07T16:39:43"}, {"amount": 6, "plate": "83078", "card": "4495301", "direction": "الشارقة", "gate": "جنوب الممزر", "trip_date_iso": "2026-05-07", "trip_time": "04:33:37م", "trip_time_24": "16:33:37", "hour_24": 16, "trip_id": "20127094115", "datetime": "2026-05-07T16:33:37"}, {"amount": 6, "plate": "90785", "card": "5664260", "direction": "الشارقة", "gate": "جسر القرهود الجديد", "trip_date_iso": "2026-05-07", "trip_time": "04:28:06م", "trip_time_24": "16:28:06", "hour_24": 16, "trip_id": "90127094402", "datetime": "2026-05-07T16:28:06"}, {"amount": 6, "plate": "83078", "card": "4495301", "direction": "الشارقة", "gate": "جسر القرهود الجديد", "trip_date_iso": "2026-05-07", "trip_time": "04:23:35م", "trip_time_24": "16:23:35", "hour_24": 16, "trip_id": "90526994192", "datetime": "2026-05-07T16:23:35"}, {"amount": 4, "plate": "83078", "card": "4495301", "direction": "أبو ظبي", "gate": "جسر القرهود الجديد", "trip_date_iso": "2026-05-07", "trip_time": "03:48:23م", "trip_time_24": "15:48:23", "hour_24": 15, "trip_id": "50126994717", "datetime": "2026-05-07T15:48:23"}, {"amount": 4, "plate": "83078", "card": "4495301", "direction": "أبو ظبي", "gate": "شمال الممزر", "trip_date_iso": "2026-05-07", "trip_time": "03:42:05م", "trip_time_24": "15:42:05", "hour_24": 15, "trip_id": "40626994303", "datetime": "2026-05-07T15:42:05"}, {"amount": 4, "plate": "90785", "card": "5664260", "direction": "أبو ظبي", "gate": "جسر القرهود الجديد", "trip_date_iso": "2026-05-07", "trip_time": "03:00:34م", "trip_time_24": "15:00:34", "hour_24": 15, "trip_id": "60826894914", "datetime": "2026-05-07T15:00:34"}, {"amount": 4, "plate": "90785", "card": "5664260", "direction": "أبو ظبي", "gate": "شمال الممزر", "trip_date_iso": "2026-05-07", "trip_time": "02:53:10م", "trip_time_24": "14:53:10", "hour_24": 14, "trip_id": "60726794999", "datetime": "2026-05-07T14:53:10"}, {"amount": 4, "plate": "90785", "card": "5664260", "direction": "الشارقة", "gate": "جنوب الممزر", "trip_date_iso": "2026-05-07", "trip_time": "02:38:12م", "trip_time_24": "14:38:12", "hour_24": 14, "trip_id": "90026794668", "datetime": "2026-05-07T14:38:12"}, {"amount": 6, "plate": "83078", "card": "4495301", "direction": "الشارقة", "gate": "جنوب الممزر", "trip_date_iso": "2026-05-06", "trip_time": "04:51:10م", "trip_time_24": "16:51:10", "hour_24": 16, "trip_id": "90924894296", "datetime": "2026-05-06T16:51:10"}, {"amount": 6, "plate": "83078", "card": "4495301", "direction": "الشارقة", "gate": "جسر المكتوم", "trip_date_iso": "2026-05-06", "trip_time": "04:39:15م", "trip_time_24": "16:39:15", "hour_24": 16, "trip_id": "20624894670", "datetime": "2026-05-06T16:39:15"}, {"amount": 6, "plate": "83078", "card": "4495301", "direction": "أبو ظبي", "gate": "جسر القرهود الجديد", "trip_date_iso": "2026-05-06", "trip_time": "04:06:08م", "trip_time_24": "16:06:08", "hour_24": 16, "trip_id": "20724794599", "datetime": "2026-05-06T16:06:08"}, {"amount": 6, "plate": "83078", "card": "4495301", "direction": "أبو ظبي", "gate": "شمال الممزر", "trip_date_iso": "2026-05-06", "trip_time": "04:00:24م", "trip_time_24": "16:00:24", "hour_24": 16, "trip_id": "50424794987", "datetime": "2026-05-06T16:00:24"}, {"amount": 4, "plate": "90785", "card": "5664260", "direction": "الشارقة", "gate": "جنوب الممزر", "trip_date_iso": "2026-05-06", "trip_time": "03:02:18م", "trip_time_24": "15:02:18", "hour_24": 15, "trip_id": "20324694564", "datetime": "2026-05-06T15:02:18"}, {"amount": 6, "plate": "90785", "card": "5664260", "direction": "الشارقة", "gate": "شمال الممزر", "trip_date_iso": "2026-05-05", "trip_time": "06:28:12م", "trip_time_24": "18:28:12", "hour_24": 18, "trip_id": "40323094528", "datetime": "2026-05-05T18:28:12"}, {"amount": 6, "plate": "90785", "card": "5664260", "direction": "الشارقة", "gate": "جسر القرهود الجديد", "trip_date_iso": "2026-05-05", "trip_time": "05:57:44م", "trip_time_24": "17:57:44", "hour_24": 17, "trip_id": "422994662", "datetime": "2026-05-05T17:57:44"}, {"amount": 6, "plate": "90785", "card": "5664260", "direction": "أبو ظبي", "gate": "جسر القرهود الجديد", "trip_date_iso": "2026-05-05", "trip_time": "04:45:39م", "trip_time_24": "16:45:39", "hour_24": 16, "trip_id": "20922794498", "datetime": "2026-05-05T16:45:39"}, {"amount": 6, "plate": "90785", "card": "5664260", "direction": "أبو ظبي", "gate": "شمال الممزر", "trip_date_iso": "2026-05-05", "trip_time": "04:38:25م", "trip_time_24": "16:38:25", "hour_24": 16, "trip_id": "70622794382", "datetime": "2026-05-05T16:38:25"}, {"amount": 4, "plate": "90785", "card": "5664260", "direction": "الشارقة", "gate": "جنوب الممزر", "trip_date_iso": "2026-05-05", "trip_time": "02:37:14م", "trip_time_24": "14:37:14", "hour_24": 14, "trip_id": "30822594537", "datetime": "2026-05-05T14:37:14"}, {"amount": 6, "plate": "83078", "card": "4495301", "direction": "الشارقة", "gate": "جنوب الممزر", "trip_date_iso": "2026-05-04", "trip_time": "05:06:05م", "trip_time_24": "17:06:05", "hour_24": 17, "trip_id": "70920794492", "datetime": "2026-05-04T17:06:05"}, {"amount": 6, "plate": "83078", "card": "4495301", "direction": "الشارقة", "gate": "جسر المكتوم", "trip_date_iso": "2026-05-04", "trip_time": "04:38:23م", "trip_time_24": "16:38:23", "hour_24": 16, "trip_id": "10020794930", "datetime": "2026-05-04T16:38:23"}, {"amount": 4, "plate": "83078", "card": "4495301", "direction": "أبو ظبي", "gate": "جسر القرهود الجديد", "trip_date_iso": "2026-05-04", "trip_time": "03:59:58م", "trip_time_24": "15:59:58", "hour_24": 15, "trip_id": "50520694545", "datetime": "2026-05-04T15:59:58"}, {"amount": 4, "plate": "83078", "card": "4495301", "direction": "أبو ظبي", "gate": "شمال الممزر", "trip_date_iso": "2026-05-04", "trip_time": "03:54:18م", "trip_time_24": "15:54:18", "hour_24": 15, "trip_id": "20820694333", "datetime": "2026-05-04T15:54:18"}, {"amount": 4, "plate": "90785", "card": "5664260", "direction": "الشارقة", "gate": "جنوب الممزر", "trip_date_iso": "2026-05-04", "trip_time": "02:37:41م", "trip_time_24": "14:37:41", "hour_24": 14, "trip_id": "90720494065", "datetime": "2026-05-04T14:37:41"}, {"amount": 6, "plate": "83078", "card": "4495301", "direction": "الشارقة", "gate": "جنوب الممزر", "trip_date_iso": "2026-05-04", "trip_time": "07:12:46ص", "trip_time_24": "07:12:46", "hour_24": 7, "trip_id": "80829593183", "datetime": "2026-05-04T07:12:46"}, {"amount": 6, "plate": "83078", "card": "4495301", "direction": "الشارقة", "gate": "جسر المكتوم", "trip_date_iso": "2026-05-04", "trip_time": "07:06:59ص", "trip_time_24": "07:06:59", "hour_24": 7, "trip_id": "10829593773", "datetime": "2026-05-04T07:06:59"}, {"amount": 6, "plate": "83078", "card": "4495301", "direction": "أبو ظبي", "gate": "جسر القرهود الجديد", "trip_date_iso": "2026-05-04", "trip_time": "06:56:02ص", "trip_time_24": "06:56:02", "hour_24": 6, "trip_id": "30229593955", "datetime": "2026-05-04T06:56:02"}, {"amount": 6, "plate": "83078", "card": "4495301", "direction": "أبو ظبي", "gate": "جنوب الممزر", "trip_date_iso": "2026-05-04", "trip_time": "06:48:44ص", "trip_time_24": "06:48:44", "hour_24": 6, "trip_id": "20629593844", "datetime": "2026-05-04T06:48:44"}, {"amount": 4, "plate": "83078", "card": "4495301", "direction": "الشارقة", "gate": "جنوب الممزر", "trip_date_iso": "2026-05-03", "trip_time": "05:02:25م", "trip_time_24": "17:02:25", "hour_24": 17, "trip_id": "80628693003", "datetime": "2026-05-03T17:02:25"}, {"amount": 4, "plate": "83078", "card": "4495301", "direction": "الشارقة", "gate": "جسر المكتوم", "trip_date_iso": "2026-05-03", "trip_time": "04:55:30م", "trip_time_24": "16:55:30", "hour_24": 16, "trip_id": "10728593092", "datetime": "2026-05-03T16:55:30"}, {"amount": 4, "plate": "83078", "card": "4495301", "direction": "أبو ظبي", "gate": "جسر القرهود الجديد", "trip_date_iso": "2026-05-03", "trip_time": "04:46:21م", "trip_time_24": "16:46:21", "hour_24": 16, "trip_id": "50428593776", "datetime": "2026-05-03T16:46:21"}, {"amount": 4, "plate": "83078", "card": "4495301", "direction": "أبو ظبي", "gate": "شمال الممزر", "trip_date_iso": "2026-05-03", "trip_time": "04:39:45م", "trip_time_24": "16:39:45", "hour_24": 16, "trip_id": "20128593165", "datetime": "2026-05-03T16:39:45"}, {"amount": 4, "plate": "90785", "card": "5664260", "direction": "الشارقة", "gate": "جنوب الممزر", "trip_date_iso": "2026-05-03", "trip_time": "12:10:02م", "trip_time_24": "12:10:02", "hour_24": 12, "trip_id": "90028193335", "datetime": "2026-05-03T12:10:02"}, {"amount": 4, "plate": "90785", "card": "5664260", "direction": "الشارقة", "gate": "جسر القرهود الجديد", "trip_date_iso": "2026-05-03", "trip_time": "12:04:32م", "trip_time_24": "12:04:32", "hour_24": 12, "trip_id": "10728193528", "datetime": "2026-05-03T12:04:32"}, {"amount": 4, "plate": "90785", "card": "5664260", "direction": "أبو ظبي", "gate": "جسر القرهود الجديد", "trip_date_iso": "2026-05-03", "trip_time": "10:56:27ص", "trip_time_24": "10:56:27", "hour_24": 10, "trip_id": "80028093237", "datetime": "2026-05-03T10:56:27"}, {"amount": 4, "plate": "90785", "card": "5664260", "direction": "الشارقة", "gate": "نفق المطار", "trip_date_iso": "2026-05-03", "trip_time": "09:40:12ص", "trip_time_24": "09:40:12", "hour_24": 9, "trip_id": "70827993352", "datetime": "2026-05-03T09:40:12"}, {"amount": 4, "plate": "90785", "card": "5664260", "direction": "أبو ظبي", "gate": "جنوب الممزر", "trip_date_iso": "2026-05-03", "trip_time": "08:21:12ص", "trip_time_24": "08:21:12", "hour_24": 8, "trip_id": "20427893188", "datetime": "2026-05-03T08:21:12"}, {"amount": 4, "plate": "90785", "card": "5664260", "direction": "الشارقة", "gate": "جنوب الممزر", "trip_date_iso": "2026-05-02", "trip_time": "03:35:48م", "trip_time_24": "15:35:48", "hour_24": 15, "trip_id": "20726493477", "datetime": "2026-05-02T15:35:48"}, {"amount": 4, "plate": "90785", "card": "5664260", "direction": "الشارقة", "gate": "جسر القرهود الجديد", "trip_date_iso": "2026-05-02", "trip_time": "03:28:16م", "trip_time_24": "15:28:16", "hour_24": 15, "trip_id": "20626493761", "datetime": "2026-05-02T15:28:16"}, {"amount": 4, "plate": "90785", "card": "5664260", "direction": "أبو ظبي", "gate": "جسر القرهود الجديد", "trip_date_iso": "2026-05-02", "trip_time": "01:30:42م", "trip_time_24": "13:30:42", "hour_24": 13, "trip_id": "10826293416", "datetime": "2026-05-02T13:30:42"}, {"amount": 6, "plate": "90785", "card": "5664260", "direction": "أبو ظبي", "gate": "جنوب الممزر", "trip_date_iso": "2026-05-02", "trip_time": "09:42:13ص", "trip_time_24": "09:42:13", "hour_24": 9, "trip_id": "10925893316", "datetime": "2026-05-02T09:42:13"}, {"amount": 4, "plate": "90785", "card": "5664260", "direction": "الشارقة", "gate": "جنوب الممزر", "trip_date_iso": "2026-05-01", "trip_time": "11:06:14ص", "trip_time_24": "11:06:14", "hour_24": 11, "trip_id": "70823893900", "datetime": "2026-05-01T11:06:14"}, {"amount": 6, "plate": "83078", "card": "4495301", "direction": "الشارقة", "gate": "جنوب الممزر", "trip_date_iso": "2026-05-01", "trip_time": "07:51:58ص", "trip_time_24": "07:51:58", "hour_24": 7, "trip_id": "40523493740", "datetime": "2026-05-01T07:51:58"}, {"amount": 6, "plate": "83078", "card": "4495301", "direction": "الشارقة", "gate": "جسر المكتوم", "trip_date_iso": "2026-05-01", "trip_time": "07:46:01ص", "trip_time_24": "07:46:01", "hour_24": 7, "trip_id": "20623493228", "datetime": "2026-05-01T07:46:01"}, {"amount": 6, "plate": "83078", "card": "4495301", "direction": "أبو ظبي", "gate": "جسر القرهود الجديد", "trip_date_iso": "2026-05-01", "trip_time": "07:33:26ص", "trip_time_24": "07:33:26", "hour_24": 7, "trip_id": "10123493203", "datetime": "2026-05-01T07:33:26"}, {"amount": 6, "plate": "83078", "card": "4495301", "direction": "أبو ظبي", "gate": "شمال الممزر", "trip_date_iso": "2026-05-01", "trip_time": "07:18:54ص", "trip_time_24": "07:18:54", "hour_24": 7, "trip_id": "80023393875", "datetime": "2026-05-01T07:18:54"}, {"amount": 4, "plate": "83078", "card": "4495301", "direction": "الشارقة", "gate": "جنوب الممزر", "trip_date_iso": "2026-04-30", "trip_time": "03:45:43م", "trip_time_24": "15:45:43", "hour_24": 15, "trip_id": "10522093988", "datetime": "2026-04-30T15:45:43"}, {"amount": 4, "plate": "83078", "card": "4495301", "direction": "الشارقة", "gate": "جسر المكتوم", "trip_date_iso": "2026-04-30", "trip_time": "03:31:15م", "trip_time_24": "15:31:15", "hour_24": 15, "trip_id": "50622093854", "datetime": "2026-04-30T15:31:15"}, {"amount": 4, "plate": "83078", "card": "4495301", "direction": "أبو ظبي", "gate": "جسر القرهود الجديد", "trip_date_iso": "2026-04-30", "trip_time": "02:55:13م", "trip_time_24": "14:55:13", "hour_24": 14, "trip_id": "80621993972", "datetime": "2026-04-30T14:55:13"}, {"amount": 4, "plate": "83078", "card": "4495301", "direction": "أبو ظبي", "gate": "شمال الممزر", "trip_date_iso": "2026-04-30", "trip_time": "02:49:02م", "trip_time_24": "14:49:02", "hour_24": 14, "trip_id": "10321993759", "datetime": "2026-04-30T14:49:02"}, {"amount": 4, "plate": "90785", "card": "5664260", "direction": "الشارقة", "gate": "جنوب الممزر", "trip_date_iso": "2026-04-30", "trip_time": "02:36:31م", "trip_time_24": "14:36:31", "hour_24": 14, "trip_id": "10721993131", "datetime": "2026-04-30T14:36:31"}, {"amount": 4, "plate": "90785", "card": "5664260", "direction": "الشارقة", "gate": "جنوب الممزر", "trip_date_iso": "2026-04-29", "trip_time": "02:38:34م", "trip_time_24": "14:38:34", "hour_24": 14, "trip_id": "90229792701", "datetime": "2026-04-29T14:38:34"}, {"amount": 4, "plate": "83078", "card": "4495301", "direction": "الشارقة", "gate": "جسر المكتوم", "trip_date_iso": "2026-04-29", "trip_time": "02:28:23م", "trip_time_24": "14:28:23", "hour_24": 14, "trip_id": "929692980", "datetime": "2026-04-29T14:28:23"}, {"amount": 4, "plate": "83078", "card": "4495301", "direction": "أبو ظبي", "gate": "جسر القرهود الجديد", "trip_date_iso": "2026-04-29", "trip_time": "01:44:08م", "trip_time_24": "13:44:08", "hour_24": 13, "trip_id": "60929592189", "datetime": "2026-04-29T13:44:08"}, {"amount": 4, "plate": "83078", "card": "4495301", "direction": "أبو ظبي", "gate": "شمال الممزر", "trip_date_iso": "2026-04-29", "trip_time": "01:38:05م", "trip_time_24": "13:38:05", "hour_24": 13, "trip_id": "30329592477", "datetime": "2026-04-29T13:38:05"}, {"amount": 6, "plate": "83078", "card": "4495301", "direction": "الشارقة", "gate": "جنوب الممزر", "trip_date_iso": "2026-04-28", "trip_time": "05:41:43م", "trip_time_24": "17:41:43", "hour_24": 17, "trip_id": "80227992812", "datetime": "2026-04-28T17:41:43"}, {"amount": 6, "plate": "83078", "card": "4495301", "direction": "الشارقة", "gate": "جسر المكتوم", "trip_date_iso": "2026-04-28", "trip_time": "04:43:17م", "trip_time_24": "16:43:17", "hour_24": 16, "trip_id": "90827792076", "datetime": "2026-04-28T16:43:17"}, {"amount": 6, "plate": "83078", "card": "4495301", "direction": "أبو ظبي", "gate": "جسر القرهود الجديد", "trip_date_iso": "2026-04-28", "trip_time": "04:28:10م", "trip_time_24": "16:28:10", "hour_24": 16, "trip_id": "70027792742", "datetime": "2026-04-28T16:28:10"}, {"amount": 6, "plate": "83078", "card": "4495301", "direction": "أبو ظبي", "gate": "شمال الممزر", "trip_date_iso": "2026-04-28", "trip_time": "04:22:05م", "trip_time_24": "16:22:05", "hour_24": 16, "trip_id": "30227792129", "datetime": "2026-04-28T16:22:05"}, {"amount": 4, "plate": "90785", "card": "5664260", "direction": "الشارقة", "gate": "جنوب الممزر", "trip_date_iso": "2026-04-28", "trip_time": "03:53:09م", "trip_time_24": "15:53:09", "hour_24": 15, "trip_id": "80327692966", "datetime": "2026-04-28T15:53:09"}, {"amount": 4, "plate": "90785", "card": "5664260", "direction": "الشارقة", "gate": "جسر القرهود الجديد", "trip_date_iso": "2026-04-28", "trip_time": "03:40:54م", "trip_time_24": "15:40:54", "hour_24": 15, "trip_id": "80427692238", "datetime": "2026-04-28T15:40:54"}, {"amount": 4, "plate": "90785", "card": "5664260", "direction": "أبو ظبي", "gate": "جسر القرهود الجديد", "trip_date_iso": "2026-04-28", "trip_time": "03:00:29م", "trip_time_24": "15:00:29", "hour_24": 15, "trip_id": "20527592448", "datetime": "2026-04-28T15:00:29"}, {"amount": 4, "plate": "90785", "card": "5664260", "direction": "أبو ظبي", "gate": "شمال الممزر", "trip_date_iso": "2026-04-28", "trip_time": "02:53:36م", "trip_time_24": "14:53:36", "hour_24": 14, "trip_id": "50027592033", "datetime": "2026-04-28T14:53:36"}, {"amount": 4, "plate": "90785", "card": "5664260", "direction": "الشارقة", "gate": "جنوب الممزر", "trip_date_iso": "2026-04-28", "trip_time": "02:36:48م", "trip_time_24": "14:36:48", "hour_24": 14, "trip_id": "90027492996", "datetime": "2026-04-28T14:36:48"}, {"amount": 4, "plate": "90785", "card": "5664260", "direction": "الشارقة", "gate": "جنوب الممزر", "trip_date_iso": "2026-04-27", "trip_time": "02:39:00م", "trip_time_24": "14:39:00", "hour_24": 14, "trip_id": "825392071", "datetime": "2026-04-27T14:39:00"}, {"amount": 4, "plate": "90785", "card": "5664260", "direction": "الشارقة", "gate": "جنوب الممزر", "trip_date_iso": "2026-04-26", "trip_time": "01:21:58م", "trip_time_24": "13:21:58", "hour_24": 13, "trip_id": "60423292725", "datetime": "2026-04-26T13:21:58"}, {"amount": 4, "plate": "90785", "card": "5664260", "direction": "الشارقة", "gate": "نفق المطار", "trip_date_iso": "2026-04-26", "trip_time": "12:43:04م", "trip_time_24": "12:43:04", "hour_24": 12, "trip_id": "50723192668", "datetime": "2026-04-26T12:43:04"}, {"amount": 4, "plate": "90785", "card": "5664260", "direction": "الشارقة", "gate": "معبر الخليج التجاري", "trip_date_iso": "2026-04-26", "trip_time": "12:37:51م", "trip_time_24": "12:37:51", "hour_24": 12, "trip_id": "20923192561", "datetime": "2026-04-26T12:37:51"}, {"amount": 4, "plate": "90785", "card": "5664260", "direction": "أبو ظبي", "gate": "جسر القرهود الجديد", "trip_date_iso": "2026-04-26", "trip_time": "09:14:54ص", "trip_time_24": "09:14:54", "hour_24": 9, "trip_id": "50422992828", "datetime": "2026-04-26T09:14:54"}, {"amount": 4, "plate": "90785", "card": "5664260", "direction": "أبو ظبي", "gate": "شمال الممزر", "trip_date_iso": "2026-04-26", "trip_time": "09:08:30ص", "trip_time_24": "09:08:30", "hour_24": 9, "trip_id": "50822992823", "datetime": "2026-04-26T09:08:30"}, {"amount": 4, "plate": "90785", "card": "5664260", "direction": "الشارقة", "gate": "جنوب الممزر", "trip_date_iso": "2026-04-24", "trip_time": "11:43:58ص", "trip_time_24": "11:43:58", "hour_24": 11, "trip_id": "50529091564", "datetime": "2026-04-24T11:43:58"}, {"amount": 4, "plate": "90785", "card": "5664260", "direction": "الشارقة", "gate": "جنوب الممزر", "trip_date_iso": "2026-04-23", "trip_time": "02:40:01م", "trip_time_24": "14:40:01", "hour_24": 14, "trip_id": "60127291162", "datetime": "2026-04-23T14:40:01"}, {"amount": 4, "plate": "90785", "card": "5664260", "direction": "الشارقة", "gate": "شمال الممزر", "trip_date_iso": "2026-04-22", "trip_time": "02:39:42م", "trip_time_24": "14:39:42", "hour_24": 14, "trip_id": "20725191539", "datetime": "2026-04-22T14:39:42"}, {"amount": 4, "plate": "83078", "card": "4495301", "direction": "الشارقة", "gate": "جنوب الممزر", "trip_date_iso": "2026-04-22", "trip_time": "10:23:58ص", "trip_time_24": "10:23:58", "hour_24": 10, "trip_id": "60924691371", "datetime": "2026-04-22T10:23:58"}, {"amount": 4, "plate": "83078", "card": "4495301", "direction": "الشارقة", "gate": "جسر المكتوم", "trip_date_iso": "2026-04-22", "trip_time": "10:18:45ص", "trip_time_24": "10:18:45", "hour_24": 10, "trip_id": "60624691562", "datetime": "2026-04-22T10:18:45"}, {"amount": 6, "plate": "83078", "card": "4495301", "direction": "أبو ظبي", "gate": "جسر المكتوم", "trip_date_iso": "2026-04-22", "trip_time": "09:41:31ص", "trip_time_24": "09:41:31", "hour_24": 9, "trip_id": "324591695", "datetime": "2026-04-22T09:41:31"}, {"amount": 6, "plate": "83078", "card": "4495301", "direction": "أبو ظبي", "gate": "شمال الممزر", "trip_date_iso": "2026-04-22", "trip_time": "08:57:09ص", "trip_time_24": "08:57:09", "hour_24": 8, "trip_id": "50924591212", "datetime": "2026-04-22T08:57:09"}, {"amount": 4, "plate": "90785", "card": "5664260", "direction": "الشارقة", "gate": "جنوب الممزر", "trip_date_iso": "2026-04-21", "trip_time": "02:39:01م", "trip_time_24": "14:39:01", "hour_24": 14, "trip_id": "70823091770", "datetime": "2026-04-21T14:39:01"}, {"amount": 4, "plate": "83078", "card": "4495301", "direction": "الشارقة", "gate": "جنوب الممزر", "trip_date_iso": "2026-04-21", "trip_time": "10:51:24ص", "trip_time_24": "10:51:24", "hour_24": 10, "trip_id": "60922691162", "datetime": "2026-04-21T10:51:24"}, {"amount": 4, "plate": "90785", "card": "5664260", "direction": "الشارقة", "gate": "جنوب الممزر", "trip_date_iso": "2026-04-20", "trip_time": "02:37:19م", "trip_time_24": "14:37:19", "hour_24": 14, "trip_id": "10921091636", "datetime": "2026-04-20T14:37:19"}, {"amount": 4, "plate": "90785", "card": "5664260", "direction": "الشارقة", "gate": "جسر القرهود الجديد", "trip_date_iso": "2026-04-19", "trip_time": "10:27:04ص", "trip_time_24": "10:27:04", "hour_24": 10, "trip_id": "10828790943", "datetime": "2026-04-19T10:27:04"}, {"amount": 4, "plate": "90785", "card": "5664260", "direction": "أبو ظبي", "gate": "جسر القرهود الجديد", "trip_date_iso": "2026-04-19", "trip_time": "10:06:56ص", "trip_time_24": "10:06:56", "hour_24": 10, "trip_id": "40128790423", "datetime": "2026-04-19T10:06:56"}, {"amount": 4, "plate": "90785", "card": "5664260", "direction": "الشارقة", "gate": "جنوب الممزر", "trip_date_iso": "2026-04-18", "trip_time": "10:41:49ص", "trip_time_24": "10:41:49", "hour_24": 10, "trip_id": "60126790081", "datetime": "2026-04-18T10:41:49"}, {"amount": 4, "plate": "90785", "card": "5664260", "direction": "الشارقة", "gate": "جسر المكتوم", "trip_date_iso": "2026-04-18", "trip_time": "10:36:08ص", "trip_time_24": "10:36:08", "hour_24": 10, "trip_id": "10726790573", "datetime": "2026-04-18T10:36:08"}, {"amount": 6, "plate": "90785", "card": "5664260", "direction": "أبو ظبي", "gate": "جسر القرهود الجديد", "trip_date_iso": "2026-04-18", "trip_time": "09:41:05ص", "trip_time_24": "09:41:05", "hour_24": 9, "trip_id": "10926690896", "datetime": "2026-04-18T09:41:05"}, {"amount": 6, "plate": "90785", "card": "5664260", "direction": "الشارقة", "gate": "جسر المكتوم", "trip_date_iso": "2026-04-18", "trip_time": "09:35:55ص", "trip_time_24": "09:35:55", "hour_24": 9, "trip_id": "50926690689", "datetime": "2026-04-18T09:35:55"}, {"amount": 6, "plate": "90785", "card": "5664260", "direction": "أبو ظبي", "gate": "جسر المكتوم", "trip_date_iso": "2026-04-18", "trip_time": "09:07:57ص", "trip_time_24": "09:07:57", "hour_24": 9, "trip_id": "20526690157", "datetime": "2026-04-18T09:07:57"}, {"amount": 6, "plate": "90785", "card": "5664260", "direction": "أبو ظبي", "gate": "شمال الممزر", "trip_date_iso": "2026-04-18", "trip_time": "08:59:09ص", "trip_time_24": "08:59:09", "hour_24": 8, "trip_id": "70326690947", "datetime": "2026-04-18T08:59:09"}, {"amount": 4, "plate": "90785", "card": "5664260", "direction": "الشارقة", "gate": "جنوب الممزر", "trip_date_iso": "2026-04-17", "trip_time": "11:10:00ص", "trip_time_24": "11:10:00", "hour_24": 11, "trip_id": "90024890332", "datetime": "2026-04-17T11:10:00"}, {"amount": 4, "plate": "90785", "card": "5664260", "direction": "الشارقة", "gate": "جنوب الممزر", "trip_date_iso": "2026-04-16", "trip_time": "02:42:50م", "trip_time_24": "14:42:50", "hour_24": 14, "trip_id": "80423190465", "datetime": "2026-04-16T14:42:50"}, {"amount": 4, "plate": "90785", "card": "5664260", "direction": "الشارقة", "gate": "جنوب الممزر", "trip_date_iso": "2026-04-15", "trip_time": "02:40:37م", "trip_time_24": "14:40:37", "hour_24": 14, "trip_id": "50021190448", "datetime": "2026-04-15T14:40:37"}, {"amount": 4, "plate": "90785", "card": "5664260", "direction": "الشارقة", "gate": "جنوب الممزر", "trip_date_iso": "2026-04-14", "trip_time": "02:42:47م", "trip_time_24": "14:42:47", "hour_24": 14, "trip_id": "40019199865", "datetime": "2026-04-14T14:42:47"}, {"amount": 4, "plate": "90785", "card": "5664260", "direction": "الشارقة", "gate": "جنوب الممزر", "trip_date_iso": "2026-04-13", "trip_time": "02:38:58م", "trip_time_24": "14:38:58", "hour_24": 14, "trip_id": "70917299119", "datetime": "2026-04-13T14:38:58"}, {"amount": 4, "plate": "83078", "card": "4495301", "direction": "الشارقة", "gate": "جنوب الممزر", "trip_date_iso": "2026-04-13", "trip_time": "10:17:23ص", "trip_time_24": "10:17:23", "hour_24": 10, "trip_id": "80816799582", "datetime": "2026-04-13T10:17:23"}, {"amount": 6, "plate": "83078", "card": "4495301", "direction": "أبو ظبي", "gate": "شمال الممزر", "trip_date_iso": "2026-04-13", "trip_time": "09:27:13ص", "trip_time_24": "09:27:13", "hour_24": 9, "trip_id": "90816699096", "datetime": "2026-04-13T09:27:13"}, {"amount": 4, "plate": "90785", "card": "5664260", "direction": "الشارقة", "gate": "جسر القرهود الجديد", "trip_date_iso": "2026-04-12", "trip_time": "11:50:12ص", "trip_time_24": "11:50:12", "hour_24": 11, "trip_id": "80115199840", "datetime": "2026-04-12T11:50:12"}]
+;
+</script>
+<script>
+// ============== نظام تخزين الملفات ==============
+const STORAGE_KEY = 'salik_dashboard_files_v1';
+
+// كل عنصر في FILES: { id, name, size, uploadedAt, recordsCount, totalAmount, records: [...] }
+let FILES = loadFilesFromStorage();
+let RAW_DATA = []; // ستُحسب من FILES في كل مرة
+let selectedFileId = null; // null = عرض كل الملفات مدموجة، أو id لعرض ملف محدد
+
+function loadFilesFromStorage() {
+  try {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+    }
+  } catch (e) {
+    console.warn('تعذّر تحميل البيانات المخزّنة:', e);
+  }
+  // إذا لم توجد بيانات محفوظة، استخدم البيانات المضمّنة كملف افتراضي
+  if (INITIAL_DATA && INITIAL_DATA.length > 0) {
+    return [{
+      id: 'default-' + Date.now(),
+      name: 'البيانات الأولية (مضمّنة)',
+      size: 0,
+      uploadedAt: new Date().toISOString(),
+      recordsCount: INITIAL_DATA.length,
+      totalAmount: INITIAL_DATA.reduce((s, t) => s + (t.amount || 0), 0),
+      records: INITIAL_DATA,
+      isDefault: true
+    }];
+  }
+  return [];
+}
+
+function saveFilesToStorage() {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(FILES));
+    return true;
+  } catch (e) {
+    console.error('فشل الحفظ:', e);
+    showToast('warning', 'تحذير', 'تعذّر حفظ البيانات في المتصفح. قد تضيع عند الإغلاق.');
+    return false;
+  }
+}
+
+function recomputeRawData() {
+  // إذا كان هناك ملف محدد، اعرض رحلاته فقط
+  // وإلا، ادمج جميع الرحلات من كل الملفات وأزل المكرر
+  const seen = new Set();
+  const merged = [];
+
+  const sourceFiles = selectedFileId
+    ? FILES.filter(f => f.id === selectedFileId)
+    : FILES;
+
+  // إذا كان الملف المحدد لم يعد موجوداً (تم حذفه)، أعد للوضع الكلي
+  if (selectedFileId && sourceFiles.length === 0) {
+    selectedFileId = null;
+    return recomputeRawData();
+  }
+
+  for (const file of sourceFiles) {
+    for (const r of file.records) {
+      const key = r.trip_id || `${r.trip_date_iso}-${r.trip_time_24}-${r.plate}-${r.gate}`;
+      if (!seen.has(key)) {
+        seen.add(key);
+        merged.push(r);
+      }
+    }
+  }
+  // ترتيب من الأحدث للأقدم
+  merged.sort((a, b) => (b.datetime || '').localeCompare(a.datetime || ''));
+  RAW_DATA = merged;
+}
+
+recomputeRawData();
+</script>
+<script>
+// ============== المتغيرات العامة ==============
+const charts = {};
+let currentMetric = 'amount';
+let filteredData = [...RAW_DATA];
+let currentSort = { col: 'datetime', dir: 'desc' };
+let currentPage = 1;
+const PAGE_SIZE = 20;
+
+const COLORS = {
+  gold: '#d4af37',
+  goldSoft: '#e6c558',
+  emerald: '#10b981',
+  emeraldSoft: '#34d399',
+  blue: '#3b82f6',
+  blueSoft: '#60a5fa',
+  amber: '#f59e0b',
+  amberSoft: '#fbbf24',
+  purple: '#8b5cf6',
+  purpleSoft: '#a78bfa',
+  crimson: '#ef4444',
+  text: '#94a3b8',
+  textPrimary: '#f1f5f9',
+  border: 'rgba(148, 163, 184, 0.15)',
+  bg: '#142544'
+};
+
+// إعدادات Chart.js عامة
+Chart.defaults.font.family = "'Tajawal', 'IBM Plex Sans Arabic', sans-serif";
+Chart.defaults.color = COLORS.text;
+Chart.defaults.borderColor = COLORS.border;
+Chart.defaults.plugins.legend.labels.usePointStyle = true;
+Chart.defaults.plugins.legend.labels.boxWidth = 8;
+Chart.defaults.plugins.legend.labels.padding = 12;
+
+// ============== تنسيقات ==============
+const fmtNum = (n) => new Intl.NumberFormat('en-US').format(n);
+const fmtDate = (iso) => {
+  if (!iso) return '-';
+  const months = ['يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر'];
+  const [y, m, d] = iso.split('-');
+  return `${parseInt(d)} ${months[parseInt(m)-1]}`;
+};
+const fmtFullDate = (iso) => {
+  if (!iso) return '-';
+  const months = ['يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر'];
+  const [y, m, d] = iso.split('-');
+  return `${parseInt(d)} ${months[parseInt(m)-1]} ${y}`;
+};
+
+// ============== التنقل بين الأقسام ==============
+const navItems = document.querySelectorAll('.nav-item[data-section]');
+const sections = document.querySelectorAll('.page-section');
+const titles = {
+  overview: { t: 'نظرة عامة', s: 'ملخص شامل عن جميع الرحلات المسجلة' },
+  trips: { t: 'سجل الرحلات', s: 'جميع الرحلات مع إمكانية البحث والتصفية' },
+  gates: { t: 'تحليل البوابات', s: 'إحصائيات تفصيلية لكل بوابة عبور' },
+  vehicles: { t: 'تحليل المركبات', s: 'إحصائيات الاستخدام لكل مركبة' },
+  analytics: { t: 'التحليلات الزمنية', s: 'الأنماط الزمنية واتجاهات الاستخدام' },
+  files: { t: 'إدارة الملفات', s: 'الملفات المرفوعة والبيانات المخزّنة' }
+};
+
+navItems.forEach(item => {
+  item.addEventListener('click', () => {
+    const section = item.dataset.section;
+    navItems.forEach(n => n.classList.remove('active'));
+    item.classList.add('active');
+    sections.forEach(s => s.classList.remove('active'));
+    document.getElementById('section-' + section).classList.add('active');
+    document.getElementById('pageTitle').textContent = titles[section].t;
+    document.getElementById('pageSubtitle').textContent = titles[section].s;
+    document.getElementById('sidebar').classList.remove('open');
+    document.getElementById('overlay').classList.remove('show');
+
+    // تحديث البانر (يخفى في قسم الملفات)
+    if (typeof updateFilterBanner === 'function') updateFilterBanner();
+
+    // إعادة رسم الرسوم لتظهر بشكل صحيح
+    setTimeout(() => {
+      Object.values(charts).forEach(c => { if (c && c.resize) c.resize(); });
+    }, 50);
+  });
+});
+
+document.getElementById('menuToggle').addEventListener('click', () => {
+  document.getElementById('sidebar').classList.toggle('open');
+  document.getElementById('overlay').classList.toggle('show');
+});
+document.getElementById('overlay').addEventListener('click', () => {
+  document.getElementById('sidebar').classList.remove('open');
+  document.getElementById('overlay').classList.remove('show');
+});
+
+document.getElementById('navExport').addEventListener('click', exportCSV);
+document.getElementById('navPrint').addEventListener('click', () => window.print());
+
+// ============== حساب الإحصائيات ==============
+function computeStats() {
+  const total = RAW_DATA.reduce((s, t) => s + t.amount, 0);
+  const count = RAW_DATA.length;
+  const avg = count > 0 ? total / count : 0;
+
+  // المجاميع حسب التاريخ
+  const byDate = {};
+  RAW_DATA.forEach(t => {
+    if (!byDate[t.trip_date_iso]) byDate[t.trip_date_iso] = { amount: 0, count: 0 };
+    byDate[t.trip_date_iso].amount += t.amount;
+    byDate[t.trip_date_iso].count += 1;
+  });
+  const dates = Object.keys(byDate).sort();
+  const days = dates.length;
+  const avgPerDay = days > 0 ? (count / days) : 0;
+
+  // البوابات
+  const byGate = {};
+  RAW_DATA.forEach(t => {
+    if (!byGate[t.gate]) byGate[t.gate] = { amount: 0, count: 0 };
+    byGate[t.gate].amount += t.amount;
+    byGate[t.gate].count += 1;
+  });
+  const topGate = Object.entries(byGate).sort((a,b) => b[1].count - a[1].count)[0];
+
+  // الاتجاهات
+  const byDirection = {};
+  RAW_DATA.forEach(t => {
+    if (!byDirection[t.direction]) byDirection[t.direction] = 0;
+    byDirection[t.direction] += 1;
+  });
+
+  // الساعات
+  const byHour = Array(24).fill(0);
+  RAW_DATA.forEach(t => byHour[t.hour_24]++);
+  const peakHour = byHour.indexOf(Math.max(...byHour));
+
+  // المركبات
+  const byPlate = {};
+  RAW_DATA.forEach(t => {
+    if (!byPlate[t.plate]) byPlate[t.plate] = { amount: 0, count: 0, gates: {} };
+    byPlate[t.plate].amount += t.amount;
+    byPlate[t.plate].count += 1;
+    byPlate[t.plate].gates[t.gate] = (byPlate[t.plate].gates[t.gate] || 0) + 1;
+  });
+
+  // اليوم الأكثر ازدحاماً
+  const busyDay = Object.entries(byDate).sort((a,b) => b[1].count - a[1].count)[0];
+
+  // الفترات اليومية: صباح(6-11)، ظهر(12-16)، مساء(17-20)، ليل(21-5)
+  const periods = { 'صباحاً': 0, 'ظهراً': 0, 'مساءً': 0, 'ليلاً': 0 };
+  RAW_DATA.forEach(t => {
+    const h = t.hour_24;
+    if (h >= 6 && h <= 11) periods['صباحاً']++;
+    else if (h >= 12 && h <= 16) periods['ظهراً']++;
+    else if (h >= 17 && h <= 20) periods['مساءً']++;
+    else periods['ليلاً']++;
+  });
+  const peakPeriod = Object.entries(periods).sort((a,b) => b[1] - a[1])[0];
+
+  return { total, count, avg, byDate, dates, days, avgPerDay, byGate, topGate,
+           byDirection, byHour, peakHour, byPlate, busyDay, periods, peakPeriod };
+}
+
+let STATS = computeStats();
+
+// ============== ملء KPI ==============
+function fillKPIs() {
+  document.getElementById('kpiTotal').innerHTML = fmtNum(STATS.total) + '<span class="kpi-unit">د.إ</span>';
+  document.getElementById('kpiTrips').textContent = fmtNum(STATS.count);
+  document.getElementById('kpiAvg').innerHTML = STATS.avg.toFixed(2) + '<span class="kpi-unit">د.إ</span>';
+  document.getElementById('kpiTopGate').textContent = STATS.topGate ? STATS.topGate[0] : '-';
+  document.getElementById('kpiTopGateCount').textContent = STATS.topGate ? `${STATS.topGate[1].count} مرور` : '';
+  document.getElementById('kpiAvgPerDay').textContent = STATS.avgPerDay.toFixed(1);
+  document.getElementById('kpiTotalDays').textContent = `خلال ${STATS.days} يوم`;
+
+  // تحليلات
+  document.getElementById('busyDay').textContent = STATS.busyDay ? fmtDate(STATS.busyDay[0]) : '-';
+  document.getElementById('busyDayCount').textContent = STATS.busyDay ? `${STATS.busyDay[1].count} رحلة • ${STATS.busyDay[1].amount} د.إ` : '';
+  const ph = STATS.peakHour;
+  const phStr = ph === 0 ? '12 ص' : ph < 12 ? `${ph} ص` : ph === 12 ? '12 م' : `${ph - 12} م`;
+  document.getElementById('peakHour').textContent = phStr;
+  document.getElementById('peakHourCount').textContent = `${STATS.byHour[ph]} رحلة في هذه الساعة`;
+  document.getElementById('activeDays').textContent = STATS.days;
+  document.getElementById('peakPeriod').textContent = STATS.peakPeriod[0];
+  const pct = ((STATS.peakPeriod[1] / STATS.count) * 100).toFixed(0);
+  document.getElementById('peakPeriodPct').textContent = `${pct}% من إجمالي الرحلات`;
+}
+
+// ============== ملء التحليلات الذكية ==============
+function fillInsights() {
+  const grid = document.getElementById('insightsGrid');
+  const insights = [];
+
+  // مدى التواريخ
+  if (STATS.dates.length > 0) {
+    insights.push({
+      label: 'الفترة المغطاة',
+      value: `${STATS.days} يوم`,
+      detail: `من ${fmtDate(STATS.dates[0])} إلى ${fmtDate(STATS.dates[STATS.dates.length - 1])}`
+    });
+  }
+
+  // أعلى تكلفة يومية
+  const maxDay = Object.entries(STATS.byDate).sort((a,b) => b[1].amount - a[1].amount)[0];
+  if (maxDay) {
+    insights.push({
+      label: 'أعلى يوم إنفاقاً',
+      value: `${maxDay[1].amount} د.إ`,
+      detail: `${fmtDate(maxDay[0])} • ${maxDay[1].count} رحلة`
+    });
+  }
+
+  // أكثر مركبة استخداماً
+  const topPlate = Object.entries(STATS.byPlate).sort((a,b) => b[1].count - a[1].count)[0];
+  if (topPlate) {
+    const pct = ((topPlate[1].count / STATS.count) * 100).toFixed(0);
+    insights.push({
+      label: 'المركبة الأكثر نشاطاً',
+      value: `لوحة ${topPlate[0]}`,
+      detail: `${topPlate[1].count} رحلة (${pct}%)`
+    });
+  }
+
+  // الاتجاه الأشهر
+  const topDir = Object.entries(STATS.byDirection).sort((a,b) => b[1] - a[1])[0];
+  if (topDir) {
+    const pct = ((topDir[1] / STATS.count) * 100).toFixed(0);
+    insights.push({
+      label: 'الاتجاه الأكثر تكراراً',
+      value: topDir[0],
+      detail: `${topDir[1]} رحلة (${pct}%)`
+    });
+  }
+
+  grid.innerHTML = insights.map(i => `
+    <div class="insight-item">
+      <div class="insight-label">${i.label}</div>
+      <div class="insight-value">${i.value}</div>
+      <div class="insight-detail">${i.detail}</div>
+    </div>
+  `).join('');
+}
+
+// ============== الرسوم البيانية ==============
+function makeGradient(ctx, color1, color2) {
+  const g = ctx.createLinearGradient(0, 0, 0, 300);
+  g.addColorStop(0, color1);
+  g.addColorStop(1, color2);
+  return g;
+}
+
+function buildDailyChart() {
+  const ctx = document.getElementById('dailyChart').getContext('2d');
+  const labels = STATS.dates.map(fmtDate);
+  const dataAmount = STATS.dates.map(d => STATS.byDate[d].amount);
+  const dataCount = STATS.dates.map(d => STATS.byDate[d].count);
+
+  if (charts.daily) charts.daily.destroy();
+  charts.daily = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [{
+        label: currentMetric === 'amount' ? 'المبلغ (د.إ)' : 'عدد الرحلات',
+        data: currentMetric === 'amount' ? dataAmount : dataCount,
+        borderColor: COLORS.gold,
+        backgroundColor: makeGradient(ctx, 'rgba(212, 175, 55, 0.4)', 'rgba(212, 175, 55, 0.02)'),
+        borderWidth: 2.5,
+        fill: true,
+        tension: 0.35,
+        pointRadius: 4,
+        pointHoverRadius: 7,
+        pointBackgroundColor: COLORS.gold,
+        pointBorderColor: COLORS.bg,
+        pointBorderWidth: 2
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: { intersect: false, mode: 'index' },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: '#0a1628',
+          borderColor: COLORS.gold,
+          borderWidth: 1,
+          padding: 12,
+          titleFont: { weight: '600' },
+          callbacks: {
+            label: (ctx) => `${ctx.parsed.y} ${currentMetric === 'amount' ? 'د.إ' : 'رحلة'}`
+          }
+        }
+      },
+      scales: {
+        x: { grid: { color: COLORS.border }, ticks: { color: COLORS.text } },
+        y: { grid: { color: COLORS.border }, ticks: { color: COLORS.text }, beginAtZero: true }
+      }
+    }
+  });
+}
+
+function buildDirectionChart() {
+  const ctx = document.getElementById('directionChart').getContext('2d');
+  const entries = Object.entries(STATS.byDirection);
+  const labels = entries.map(e => e[0]);
+  const data = entries.map(e => e[1]);
+  const colors = [COLORS.blue, COLORS.emerald, COLORS.amber, COLORS.purple];
+
+  if (charts.direction) charts.direction.destroy();
+  charts.direction = new Chart(ctx, {
+    type: 'doughnut',
+    data: {
+      labels,
+      datasets: [{
+        data,
+        backgroundColor: colors,
+        borderColor: COLORS.bg,
+        borderWidth: 3,
+        hoverOffset: 12
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      cutout: '65%',
+      plugins: {
+        legend: {
+          position: 'bottom',
+          labels: { color: COLORS.text, padding: 16, font: { size: 13 } }
+        },
+        tooltip: {
+          backgroundColor: '#0a1628',
+          padding: 12,
+          callbacks: {
+            label: (ctx) => {
+              const pct = ((ctx.parsed / STATS.count) * 100).toFixed(1);
+              return `${ctx.label}: ${ctx.parsed} رحلة (${pct}%)`;
+            }
+          }
+        }
+      }
+    }
+  });
+}
+
+function buildGatesChart() {
+  const ctx = document.getElementById('gatesChart').getContext('2d');
+  const sorted = Object.entries(STATS.byGate).sort((a,b) => b[1].count - a[1].count);
+  const labels = sorted.map(e => e[0]);
+  const data = sorted.map(e => e[1].count);
+
+  if (charts.gates) charts.gates.destroy();
+  charts.gates = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [{
+        label: 'عدد المرور',
+        data,
+        backgroundColor: makeGradient(ctx, COLORS.gold, 'rgba(212, 175, 55, 0.4)'),
+        borderRadius: 6,
+        borderSkipped: false
+      }]
+    },
+    options: {
+      indexAxis: 'y',
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: { backgroundColor: '#0a1628', padding: 12 }
+      },
+      scales: {
+        x: { grid: { color: COLORS.border }, ticks: { color: COLORS.text }, beginAtZero: true },
+        y: { grid: { display: false }, ticks: { color: COLORS.textPrimary, font: { size: 12 } } }
+      }
+    }
+  });
+}
+
+function buildHourChart() {
+  const ctx = document.getElementById('hourChart').getContext('2d');
+  const labels = Array.from({length: 24}, (_, i) => {
+    if (i === 0) return '12 ص';
+    if (i < 12) return `${i} ص`;
+    if (i === 12) return '12 م';
+    return `${i - 12} م`;
+  });
+
+  if (charts.hour) charts.hour.destroy();
+  charts.hour = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [{
+        label: 'الرحلات',
+        data: STATS.byHour,
+        backgroundColor: STATS.byHour.map(v => {
+          const max = Math.max(...STATS.byHour);
+          const intensity = max > 0 ? v / max : 0;
+          if (intensity > 0.7) return COLORS.gold;
+          if (intensity > 0.4) return 'rgba(212, 175, 55, 0.7)';
+          if (intensity > 0.1) return 'rgba(212, 175, 55, 0.4)';
+          return 'rgba(148, 163, 184, 0.2)';
+        }),
+        borderRadius: 4,
+        borderSkipped: false
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: { backgroundColor: '#0a1628', padding: 12 }
+      },
+      scales: {
+        x: { grid: { display: false }, ticks: { color: COLORS.text, font: { size: 10 } } },
+        y: { grid: { color: COLORS.border }, ticks: { color: COLORS.text }, beginAtZero: true }
+      }
+    }
+  });
+}
+
+function buildGatesPageCharts() {
+  const ctx1 = document.getElementById('gatesRevenueChart').getContext('2d');
+  const sorted = Object.entries(STATS.byGate).sort((a,b) => b[1].amount - a[1].amount);
+  const labels = sorted.map(e => e[0]);
+  const data = sorted.map(e => e[1].amount);
+
+  if (charts.gatesRev) charts.gatesRev.destroy();
+  charts.gatesRev = new Chart(ctx1, {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [{
+        data,
+        backgroundColor: makeGradient(ctx1, COLORS.emerald, 'rgba(16, 185, 129, 0.3)'),
+        borderRadius: 8
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false }, tooltip: { backgroundColor: '#0a1628', padding: 12, callbacks: { label: c => `${c.parsed.y} د.إ` } } },
+      scales: {
+        x: { grid: { display: false }, ticks: { color: COLORS.text, font: { size: 11 }, maxRotation: 30, minRotation: 30 } },
+        y: { grid: { color: COLORS.border }, ticks: { color: COLORS.text } }
+      }
+    }
+  });
+
+  const ctx2 = document.getElementById('gatesShareChart').getContext('2d');
+  const sortedC = Object.entries(STATS.byGate).sort((a,b) => b[1].count - a[1].count);
+  const palette = [COLORS.gold, COLORS.emerald, COLORS.blue, COLORS.amber, COLORS.purple, COLORS.crimson];
+
+  if (charts.gatesShare) charts.gatesShare.destroy();
+  charts.gatesShare = new Chart(ctx2, {
+    type: 'polarArea',
+    data: {
+      labels: sortedC.map(e => e[0]),
+      datasets: [{
+        data: sortedC.map(e => e[1].count),
+        backgroundColor: palette.map(c => c + 'aa'),
+        borderColor: palette,
+        borderWidth: 2
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { position: 'bottom', labels: { color: COLORS.text, padding: 10, font: { size: 11 } } },
+        tooltip: { backgroundColor: '#0a1628', padding: 12 }
+      },
+      scales: {
+        r: { grid: { color: COLORS.border }, angleLines: { color: COLORS.border }, ticks: { color: COLORS.text, backdropColor: 'transparent' } }
+      }
+    }
+  });
+}
+
+function buildGatesGrid() {
+  const grid = document.getElementById('gatesGrid');
+  const sorted = Object.entries(STATS.byGate).sort((a,b) => b[1].count - a[1].count);
+  const max = sorted[0] ? sorted[0][1].count : 1;
+  grid.innerHTML = sorted.map((e, i) => {
+    const pct = ((e[1].count / max) * 100).toFixed(0);
+    const sharePct = ((e[1].count / STATS.count) * 100).toFixed(1);
+    return `
+      <div class="gate-card ${i === 0 ? 'top-1' : ''}">
+        <div class="gate-card-header">
+          <div class="gate-name">${e[0]}</div>
+          <div class="gate-rank">#${i+1}</div>
+        </div>
+        <div class="gate-stats">
+          <div>
+            <div class="gate-stat-label">عدد المرور</div>
+            <div class="gate-stat-value">${e[1].count}</div>
+          </div>
+          <div style="text-align: left;">
+            <div class="gate-stat-label">الإيراد</div>
+            <div class="gate-stat-value money">${e[1].amount} د.إ</div>
+          </div>
+        </div>
+        <div class="gate-bar">
+          <div class="gate-bar-fill" style="width: ${pct}%"></div>
+        </div>
+        <div style="margin-top: 8px; font-size: 11px; color: var(--text-tertiary);">
+          ${sharePct}% من إجمالي الرحلات
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+function buildVehiclesGrid() {
+  const grid = document.getElementById('vehiclesGrid');
+  const entries = Object.entries(STATS.byPlate).sort((a,b) => b[1].count - a[1].count);
+  grid.innerHTML = entries.map(([plate, info]) => {
+    const topGate = Object.entries(info.gates).sort((a,b) => b[1] - a[1])[0];
+    return `
+      <div class="vehicle-card">
+        <div class="plate-display">
+          <div class="plate-emirate">U.A.E</div>
+          <div class="plate-number">${plate}</div>
+        </div>
+        <div class="vehicle-stats">
+          <div class="vehicle-stat">
+            <div class="vehicle-stat-label">عدد الرحلات</div>
+            <div class="vehicle-stat-value emerald">${info.count}</div>
+          </div>
+          <div class="vehicle-stat">
+            <div class="vehicle-stat-label">الإجمالي</div>
+            <div class="vehicle-stat-value gold">${info.amount} د.إ</div>
+          </div>
+          <div class="vehicle-stat">
+            <div class="vehicle-stat-label">المتوسط</div>
+            <div class="vehicle-stat-value">${(info.amount / info.count).toFixed(2)} د.إ</div>
+          </div>
+          <div class="vehicle-stat">
+            <div class="vehicle-stat-label">البوابة المفضلة</div>
+            <div class="vehicle-stat-value" style="font-size: 13px;">${topGate ? topGate[0] : '-'}</div>
+          </div>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+function buildVehiclesCharts() {
+  // مقارنة يومية
+  const ctx1 = document.getElementById('vehicleDailyChart').getContext('2d');
+  const plates = Object.keys(STATS.byPlate);
+  const palette = [COLORS.gold, COLORS.emerald, COLORS.blue, COLORS.purple];
+
+  const datasets = plates.map((p, i) => {
+    const data = STATS.dates.map(d => {
+      return RAW_DATA.filter(t => t.plate === p && t.trip_date_iso === d).reduce((s, t) => s + t.amount, 0);
+    });
+    return {
+      label: `لوحة ${p}`,
+      data,
+      borderColor: palette[i],
+      backgroundColor: palette[i] + '33',
+      borderWidth: 2.5,
+      tension: 0.35,
+      fill: false,
+      pointRadius: 3,
+      pointHoverRadius: 6
+    };
+  });
+
+  if (charts.vehicleDaily) charts.vehicleDaily.destroy();
+  charts.vehicleDaily = new Chart(ctx1, {
+    type: 'line',
+    data: { labels: STATS.dates.map(fmtDate), datasets },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { position: 'top', labels: { color: COLORS.textPrimary, padding: 16 } },
+        tooltip: { backgroundColor: '#0a1628', padding: 12, mode: 'index', intersect: false }
+      },
+      scales: {
+        x: { grid: { color: COLORS.border }, ticks: { color: COLORS.text } },
+        y: { grid: { color: COLORS.border }, ticks: { color: COLORS.text }, beginAtZero: true }
+      }
+    }
+  });
+
+  // البوابات لكل مركبة
+  const ctx2 = document.getElementById('vehicleGatesChart').getContext('2d');
+  const allGates = [...new Set(RAW_DATA.map(t => t.gate))];
+  const datasets2 = plates.map((p, i) => ({
+    label: `لوحة ${p}`,
+    data: allGates.map(g => STATS.byPlate[p].gates[g] || 0),
+    backgroundColor: palette[i],
+    borderRadius: 4
+  }));
+
+  if (charts.vehicleGates) charts.vehicleGates.destroy();
+  charts.vehicleGates = new Chart(ctx2, {
+    type: 'bar',
+    data: { labels: allGates, datasets: datasets2 },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { position: 'top', labels: { color: COLORS.textPrimary, padding: 16 } },
+        tooltip: { backgroundColor: '#0a1628', padding: 12 }
+      },
+      scales: {
+        x: { stacked: false, grid: { display: false }, ticks: { color: COLORS.text, font: { size: 11 } } },
+        y: { stacked: false, grid: { color: COLORS.border }, ticks: { color: COLORS.text }, beginAtZero: true }
+      }
+    }
+  });
+}
+
+function buildAnalyticsCharts() {
+  // الخط الزمني الكامل
+  const ctx1 = document.getElementById('timelineChart').getContext('2d');
+  const allDates = [];
+  const start = new Date(STATS.dates[0]);
+  const end = new Date(STATS.dates[STATS.dates.length - 1]);
+  const cur = new Date(start);
+  while (cur <= end) {
+    allDates.push(cur.toISOString().slice(0, 10));
+    cur.setDate(cur.getDate() + 1);
+  }
+  const data = allDates.map(d => STATS.byDate[d] ? STATS.byDate[d].count : 0);
+
+  if (charts.timeline) charts.timeline.destroy();
+  charts.timeline = new Chart(ctx1, {
+    type: 'line',
+    data: {
+      labels: allDates.map(fmtDate),
+      datasets: [{
+        label: 'عدد الرحلات',
+        data,
+        borderColor: COLORS.purple,
+        backgroundColor: makeGradient(ctx1, 'rgba(139, 92, 246, 0.4)', 'rgba(139, 92, 246, 0.02)'),
+        borderWidth: 2,
+        fill: true,
+        tension: 0.4,
+        pointRadius: 0,
+        pointHoverRadius: 6
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: { backgroundColor: '#0a1628', padding: 12 }
+      },
+      scales: {
+        x: { grid: { color: COLORS.border }, ticks: { color: COLORS.text, maxTicksLimit: 10 } },
+        y: { grid: { color: COLORS.border }, ticks: { color: COLORS.text }, beginAtZero: true }
+      }
+    }
+  });
+
+  // الفترات
+  const ctx2 = document.getElementById('periodChart').getContext('2d');
+  const labels = Object.keys(STATS.periods);
+  const dataP = Object.values(STATS.periods);
+
+  if (charts.period) charts.period.destroy();
+  charts.period = new Chart(ctx2, {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [{
+        data: dataP,
+        backgroundColor: [COLORS.amber, COLORS.gold, COLORS.crimson, COLORS.blue],
+        borderRadius: 8
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: '#0a1628', padding: 12,
+          callbacks: {
+            label: (c) => {
+              const pct = ((c.parsed.y / STATS.count) * 100).toFixed(1);
+              return `${c.parsed.y} رحلة (${pct}%)`;
+            }
+          }
+        }
+      },
+      scales: {
+        x: { grid: { display: false }, ticks: { color: COLORS.textPrimary, font: { size: 13, weight: '600' } } },
+        y: { grid: { color: COLORS.border }, ticks: { color: COLORS.text }, beginAtZero: true }
+      }
+    }
+  });
+
+  // خريطة حرارية
+  buildHeatmap();
+}
+
+function buildHeatmap() {
+  const container = document.getElementById('heatmapContainer');
+  // يوم الأسبوع: 0 = الأحد
+  const dayNames = ['الأحد', 'الإثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت'];
+  const grid = Array.from({length: 7}, () => Array(24).fill(0));
+
+  RAW_DATA.forEach(t => {
+    const dt = new Date(t.trip_date_iso);
+    const dow = dt.getDay();
+    grid[dow][t.hour_24]++;
+  });
+
+  const max = Math.max(...grid.flat());
+
+  let html = '<div style="overflow-x: auto;"><div style="display: grid; grid-template-columns: 60px repeat(24, 1fr); gap: 2px; min-width: 700px;">';
+  // رأس
+  html += '<div></div>';
+  for (let h = 0; h < 24; h++) {
+    const lbl = h === 0 ? '12ص' : h < 12 ? `${h}ص` : h === 12 ? '12م' : `${h-12}م`;
+    html += `<div style="font-size: 10px; color: var(--text-tertiary); text-align: center; padding: 4px 0;">${lbl}</div>`;
+  }
+  // صفوف
+  for (let d = 0; d < 7; d++) {
+    html += `<div style="font-size: 11px; color: var(--text-secondary); padding: 6px 8px; display: flex; align-items: center; justify-content: flex-start;">${dayNames[d]}</div>`;
+    for (let h = 0; h < 24; h++) {
+      const v = grid[d][h];
+      const intensity = max > 0 ? v / max : 0;
+      let bg = 'rgba(148, 163, 184, 0.05)';
+      if (intensity > 0) {
+        const alpha = 0.15 + intensity * 0.85;
+        bg = `rgba(212, 175, 55, ${alpha})`;
+      }
+      const tip = v > 0 ? `${dayNames[d]} ${h}:00 — ${v} رحلة` : '';
+      html += `<div title="${tip}" style="aspect-ratio: 1; background: ${bg}; border-radius: 3px; display: flex; align-items: center; justify-content: center; font-size: 10px; color: ${intensity > 0.5 ? '#0a1628' : 'var(--text-secondary)'}; font-weight: 600; min-height: 24px;">${v > 0 ? v : ''}</div>`;
+    }
+  }
+  html += '</div></div>';
+
+  // مفتاح الألوان
+  html += '<div style="display: flex; align-items: center; gap: 8px; margin-top: 12px; font-size: 11px; color: var(--text-tertiary); justify-content: flex-end;">';
+  html += '<span>أقل</span>';
+  for (let i = 0; i <= 4; i++) {
+    const a = 0.15 + (i / 4) * 0.85;
+    html += `<div style="width: 16px; height: 16px; background: rgba(212, 175, 55, ${a}); border-radius: 3px;"></div>`;
+  }
+  html += '<span>أكثر</span></div>';
+
+  container.innerHTML = html;
+}
+
+// ============== الجدول التفاعلي ==============
+function fillFilters() {
+  const directions = [...new Set(RAW_DATA.map(t => t.direction))];
+  const gates = [...new Set(RAW_DATA.map(t => t.gate))];
+  const plates = [...new Set(RAW_DATA.map(t => t.plate))];
+
+  const dirSel = document.getElementById('filterDirection');
+  directions.forEach(d => {
+    const o = document.createElement('option');
+    o.value = d; o.textContent = d;
+    dirSel.appendChild(o);
+  });
+  const gateSel = document.getElementById('filterGate');
+  gates.forEach(g => {
+    const o = document.createElement('option');
+    o.value = g; o.textContent = g;
+    gateSel.appendChild(o);
+  });
+  const plateSel = document.getElementById('filterPlate');
+  plates.forEach(p => {
+    const o = document.createElement('option');
+    o.value = p; o.textContent = `لوحة ${p}`;
+    plateSel.appendChild(o);
+  });
+}
+
+function applyFilters() {
+  const search = document.getElementById('searchInput').value.toLowerCase().trim();
+  const dir = document.getElementById('filterDirection').value;
+  const gate = document.getElementById('filterGate').value;
+  const plate = document.getElementById('filterPlate').value;
+
+  filteredData = RAW_DATA.filter(t => {
+    if (dir && t.direction !== dir) return false;
+    if (gate && t.gate !== gate) return false;
+    if (plate && t.plate !== plate) return false;
+    if (search) {
+      const blob = `${t.trip_id} ${t.plate} ${t.gate} ${t.direction} ${t.card}`.toLowerCase();
+      if (!blob.includes(search)) return false;
+    }
+    return true;
+  });
+
+  // ترتيب
+  sortData();
+  currentPage = 1;
+  renderTable();
+}
+
+function sortData() {
+  const { col, dir } = currentSort;
+  filteredData.sort((a, b) => {
+    let va = a[col], vb = b[col];
+    if (col === 'amount') { va = +va; vb = +vb; }
+    if (typeof va === 'string') va = va.toLowerCase();
+    if (typeof vb === 'string') vb = vb.toLowerCase();
+    if (va < vb) return dir === 'asc' ? -1 : 1;
+    if (va > vb) return dir === 'asc' ? 1 : -1;
+    return 0;
+  });
+}
+
+function renderTable() {
+  const tbody = document.getElementById('tableBody');
+  const start = (currentPage - 1) * PAGE_SIZE;
+  const end = Math.min(start + PAGE_SIZE, filteredData.length);
+  const slice = filteredData.slice(start, end);
+
+  if (slice.length === 0) {
+    tbody.innerHTML = `
+      <tr><td colspan="7">
+        <div class="empty-state">
+          <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+          <div>لا توجد نتائج مطابقة</div>
+        </div>
+      </td></tr>
+    `;
+  } else {
+    tbody.innerHTML = slice.map(t => {
+      const dirClass = t.direction === 'الشارقة' ? 'tag-direction-sharjah' : 'tag-direction-abudhabi';
+      return `
+        <tr>
+          <td>${fmtFullDate(t.trip_date_iso)}</td>
+          <td>${t.trip_time}</td>
+          <td><strong>${t.plate}</strong></td>
+          <td><span class="tag ${dirClass}"><span class="dot"></span>${t.direction}</span></td>
+          <td>${t.gate}</td>
+          <td class="cell-money">${t.amount} د.إ</td>
+          <td class="cell-id">${t.trip_id}</td>
+        </tr>
+      `;
+    }).join('');
+  }
+
+  // معلومات الصفحة
+  document.getElementById('tableInfo').textContent =
+    filteredData.length > 0 ? `عرض ${start + 1}-${end} من ${filteredData.length}` : 'لا توجد نتائج';
+  document.getElementById('tableBadge').textContent = `${filteredData.length} رحلة`;
+
+  renderPagination();
+
+  // أسهم الترتيب
+  document.querySelectorAll('.data-table th').forEach(th => {
+    th.classList.remove('sorted-asc', 'sorted-desc');
+    if (th.dataset.sort === currentSort.col) {
+      th.classList.add(currentSort.dir === 'asc' ? 'sorted-asc' : 'sorted-desc');
+      th.querySelector('.sort-icon').textContent = currentSort.dir === 'asc' ? '▲' : '▼';
+    } else {
+      const ic = th.querySelector('.sort-icon');
+      if (ic) ic.textContent = '▼';
+    }
+  });
+}
+
+function renderPagination() {
+  const totalPages = Math.max(1, Math.ceil(filteredData.length / PAGE_SIZE));
+  const wrap = document.getElementById('pagination');
+  let html = '';
+  html += `<button class="page-btn" ${currentPage === 1 ? 'disabled' : ''} onclick="goToPage(${currentPage - 1})">›</button>`;
+
+  // عرض ذكي للصفحات
+  let start = Math.max(1, currentPage - 2);
+  let end = Math.min(totalPages, start + 4);
+  start = Math.max(1, end - 4);
+
+  if (start > 1) {
+    html += `<button class="page-btn" onclick="goToPage(1)">1</button>`;
+    if (start > 2) html += `<span style="color: var(--text-muted); padding: 0 4px;">...</span>`;
+  }
+  for (let i = start; i <= end; i++) {
+    html += `<button class="page-btn ${i === currentPage ? 'active' : ''}" onclick="goToPage(${i})">${i}</button>`;
+  }
+  if (end < totalPages) {
+    if (end < totalPages - 1) html += `<span style="color: var(--text-muted); padding: 0 4px;">...</span>`;
+    html += `<button class="page-btn" onclick="goToPage(${totalPages})">${totalPages}</button>`;
+  }
+
+  html += `<button class="page-btn" ${currentPage === totalPages ? 'disabled' : ''} onclick="goToPage(${currentPage + 1})">‹</button>`;
+  wrap.innerHTML = html;
+}
+
+function goToPage(p) {
+  currentPage = p;
+  renderTable();
+}
+
+document.getElementById('searchInput').addEventListener('input', applyFilters);
+document.getElementById('filterDirection').addEventListener('change', applyFilters);
+document.getElementById('filterGate').addEventListener('change', applyFilters);
+document.getElementById('filterPlate').addEventListener('change', applyFilters);
+
+document.querySelectorAll('.data-table th').forEach(th => {
+  th.addEventListener('click', () => {
+    const col = th.dataset.sort;
+    if (currentSort.col === col) {
+      currentSort.dir = currentSort.dir === 'asc' ? 'desc' : 'asc';
+    } else {
+      currentSort.col = col;
+      currentSort.dir = 'desc';
+    }
+    sortData();
+    renderTable();
+  });
+});
+
+// تبويبات الرسم اليومي
+document.querySelectorAll('.chart-tabs .chart-tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    document.querySelectorAll('.chart-tabs .chart-tab').forEach(t => t.classList.remove('active'));
+    tab.classList.add('active');
+    currentMetric = tab.dataset.metric;
+    buildDailyChart();
+  });
+});
+
+// ============== التصدير ==============
+function exportCSV() {
+  const headers = ['رقم الرحلة', 'التاريخ', 'الوقت', 'رقم اللوحة', 'الاتجاه', 'البوابة', 'المبلغ (د.إ)'];
+  const rows = filteredData.map(t => [
+    t.trip_id, t.trip_date_iso, t.trip_time, t.plate, t.direction, t.gate, t.amount
+  ]);
+  const csv = '\ufeff' + [headers, ...rows].map(r => r.map(c => `"${c}"`).join(',')).join('\n');
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `سالك_رحلات_${new Date().toISOString().slice(0,10)}.csv`;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+// ============== التشغيل ==============
+function refreshAll() {
+  // التعامل مع الحالة الفارغة
+  if (RAW_DATA.length === 0) {
+    fillEmptyState();
+    updateFilesNavBadge();
+    renderFilesList();
+    return;
+  }
+
+  // إعادة حساب الإحصائيات
+  STATS = computeStats();
+
+  // إعادة بناء كل العناصر المرئية
+  fillKPIs();
+  fillInsights();
+  buildDailyChart();
+  buildDirectionChart();
+  buildGatesChart();
+  buildHourChart();
+  buildGatesPageCharts();
+  buildGatesGrid();
+  buildVehiclesGrid();
+  buildVehiclesCharts();
+  buildAnalyticsCharts();
+
+  // تحديث الفلاتر بالقيم الجديدة
+  rebuildFilters();
+
+  // إعادة عرض الجدول
+  filteredData = [...RAW_DATA];
+  sortData();
+  currentPage = 1;
+  renderTable();
+
+  // تحديث قسم الملفات
+  updateFilesNavBadge();
+  renderFilesList();
+}
+
+function fillEmptyState() {
+  // عرض حالة فارغة عند عدم وجود بيانات
+  document.getElementById('kpiTotal').innerHTML = '0<span class="kpi-unit">د.إ</span>';
+  document.getElementById('kpiTrips').textContent = '0';
+  document.getElementById('kpiAvg').innerHTML = '0<span class="kpi-unit">د.إ</span>';
+  document.getElementById('kpiTopGate').textContent = '-';
+  document.getElementById('kpiTopGateCount').textContent = '';
+  document.getElementById('kpiAvgPerDay').textContent = '0';
+  document.getElementById('kpiTotalDays').textContent = 'لا توجد بيانات';
+  document.getElementById('insightsGrid').innerHTML = '<div style="grid-column: 1/-1; text-align: center; padding: 20px; color: var(--text-tertiary);">ارفع ملف Excel لرؤية التحليلات</div>';
+
+  // تدمير الرسوم البيانية الموجودة
+  Object.values(charts).forEach(c => { if (c && c.destroy) c.destroy(); });
+  Object.keys(charts).forEach(k => delete charts[k]);
+
+  document.getElementById('tableBody').innerHTML = '<tr><td colspan="7"><div class="empty-state"><div>لا توجد بيانات حالياً. ارفع ملف Excel لتبدأ.</div></div></td></tr>';
+  document.getElementById('tableBadge').textContent = '0 رحلة';
+  document.getElementById('gatesGrid').innerHTML = '';
+  document.getElementById('vehiclesGrid').innerHTML = '';
+  document.getElementById('pagination').innerHTML = '';
+  document.getElementById('tableInfo').textContent = 'لا توجد نتائج';
+}
+
+function init() {
+  refreshAll();
+  setupFileUpload();
+  setupDragDrop();
+}
+
+// ============== رفع ملف Excel جديد ==============
+const ARABIC_MONTHS = {
+  'يناير': '01', 'فبراير': '02', 'مارس': '03', 'أبريل': '04',
+  'مايو': '05', 'يونيو': '06', 'يوليو': '07', 'أغسطس': '08',
+  'سبتمبر': '09', 'أكتوبر': '10', 'نوفمبر': '11', 'ديسمبر': '12'
+};
+
+function parseArabicDate(s) {
+  if (!s) return null;
+  s = String(s).trim();
+  for (const [ar, num] of Object.entries(ARABIC_MONTHS)) {
+    if (s.includes(ar)) {
+      const parts = s.split(ar);
+      const day = parts[0].trim().padStart(2, '0');
+      const year = parts[1].trim();
+      return `${year}-${num}-${day}`;
+    }
+  }
+  // محاولة قراءة تاريخ ISO أو مشابه
+  const m = s.match(/(\d{4})[-/](\d{1,2})[-/](\d{1,2})/);
+  if (m) return `${m[1]}-${m[2].padStart(2,'0')}-${m[3].padStart(2,'0')}`;
+  return s;
+}
+
+function parseArabicTime(s) {
+  if (!s) return '00:00:00';
+  s = String(s).trim();
+  const isPM = s.includes('م');
+  const isAM = s.includes('ص');
+  const clean = s.replace(/[مص]/g, '').trim();
+  const parts = clean.split(':');
+  let h = parseInt(parts[0]) || 0;
+  const m = parseInt(parts[1]) || 0;
+  const sec = parseInt(parts[2]) || 0;
+  if (isPM && h !== 12) h += 12;
+  else if (isAM && h === 12) h = 0;
+  return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(sec).padStart(2,'0')}`;
+}
+
+function setupFileUpload() {
+  document.getElementById('navUpload').addEventListener('click', () => {
+    document.getElementById('fileInput').click();
+  });
+}
+
+function handleFileUpload(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  processExcelFile(file);
+  // تصفير الإدخال للسماح بإعادة رفع نفس الملف لاحقاً
+  event.target.value = '';
+}
+
+function processExcelFile(file) {
+  const ext = file.name.split('.').pop().toLowerCase();
+  if (!['xls', 'xlsx', 'csv'].includes(ext)) {
+    showToast('error', 'صيغة غير مدعومة', 'يرجى رفع ملف بصيغة XLS أو XLSX أو CSV');
+    return;
+  }
+
+  showToast('info', 'جارٍ القراءة...', `قراءة الملف: ${file.name}`, 1500);
+
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    try {
+      const data = new Uint8Array(e.target.result);
+      const workbook = XLSX.read(data, { type: 'array', cellDates: false });
+      const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+      const rows = XLSX.utils.sheet_to_json(firstSheet, { header: 1, defval: '' });
+      const parsed = parseSalikData(rows);
+
+      if (parsed.length === 0) {
+        showToast('error', 'لم يتم العثور على بيانات', 'تحقق من أن الملف يحتوي على رحلات سالك بالتنسيق الصحيح');
+        return;
+      }
+
+      // حساب عدد الرحلات الجديدة فعلياً (غير مكررة)
+      const existingIds = new Set();
+      for (const f of FILES) {
+        for (const r of f.records) {
+          existingIds.add(r.trip_id || `${r.trip_date_iso}-${r.trip_time_24}-${r.plate}-${r.gate}`);
+        }
+      }
+      let newCount = 0;
+      let duplicateCount = 0;
+      for (const r of parsed) {
+        const key = r.trip_id || `${r.trip_date_iso}-${r.trip_time_24}-${r.plate}-${r.gate}`;
+        if (existingIds.has(key)) duplicateCount++;
+        else newCount++;
+      }
+
+      // إنشاء سجل ملف جديد
+      const newFile = {
+        id: 'file-' + Date.now() + '-' + Math.random().toString(36).slice(2, 8),
+        name: file.name,
+        size: file.size,
+        uploadedAt: new Date().toISOString(),
+        recordsCount: parsed.length,
+        newCount: newCount,
+        duplicateCount: duplicateCount,
+        totalAmount: parsed.reduce((s, t) => s + (t.amount || 0), 0),
+        records: parsed
+      };
+
+      // إذا كان الملف الافتراضي موجوداً والملفات الأخرى = 0، استبدله
+      // (لأن المستخدم يبدأ يعتمد على ملفاته الفعلية)
+      if (FILES.length === 1 && FILES[0].isDefault) {
+        FILES = [newFile];
+      } else {
+        FILES.push(newFile);
+      }
+
+      saveFilesToStorage();
+      recomputeRawData();
+      refreshAll();
+      renderFilesList();
+
+      let msg = `تم تحميل ${parsed.length} رحلة من ${file.name}`;
+      if (duplicateCount > 0) {
+        msg = `تمت إضافة ${newCount} رحلة جديدة (${duplicateCount} مكرّرة تم تجاهلها)`;
+      }
+      showToast('success', 'تم الحفظ بنجاح', msg);
+    } catch (err) {
+      console.error(err);
+      showToast('error', 'فشل في قراءة الملف', err.message || 'تأكد من سلامة الملف وحاول مجدداً');
+    }
+  };
+  reader.onerror = () => showToast('error', 'فشل في القراءة', 'تعذّر فتح الملف');
+  reader.readAsArrayBuffer(file);
+}
+
+function parseSalikData(rows) {
+  // البحث عن صف العناوين (يحوي "اللوحة" أو "بوابة العبور")
+  let headerRow = -1;
+  for (let i = 0; i < Math.min(rows.length, 10); i++) {
+    const joined = rows[i].join('|');
+    if (joined.includes('اللوحة') || joined.includes('بوابة') || joined.includes('رقم الرحلة')) {
+      headerRow = i;
+      break;
+    }
+  }
+  if (headerRow === -1) return [];
+
+  const headers = rows[headerRow].map(h => String(h).trim());
+  // تحديد فهارس الأعمدة
+  const colIdx = {};
+  headers.forEach((h, i) => {
+    if (h.includes('المبلغ')) colIdx.amount = i;
+    else if (h === 'اللوحة' || h.includes('اللوحة')) colIdx.plate = i;
+    else if (h.includes('البطاقة')) colIdx.card = i;
+    else if (h.includes('إتجاه') || h.includes('اتجاه')) colIdx.direction = i;
+    else if (h.includes('بوابة')) colIdx.gate = i;
+    else if (h.includes('وقت')) colIdx.time = i;
+    else if (h === 'تاريخ الرحلة' || (h.includes('تاريخ') && !h.includes('إدراج'))) colIdx.date = i;
+    else if (h.includes('رقم الرحلة')) colIdx.tripId = i;
+  });
+
+  const records = [];
+  for (let i = headerRow + 1; i < rows.length; i++) {
+    const row = rows[i];
+    if (!row || row.every(c => !c && c !== 0)) continue;
+
+    const amount = Number(row[colIdx.amount]) || 0;
+    const plate = String(row[colIdx.plate] || '').trim();
+    const direction = String(row[colIdx.direction] || '').trim();
+    const gate = String(row[colIdx.gate] || '').trim();
+    const tripDate = String(row[colIdx.date] || '').trim();
+    const tripTime = String(row[colIdx.time] || '').trim();
+    const tripId = String(row[colIdx.tripId] || '').trim();
+    const card = String(row[colIdx.card] || '').trim();
+
+    if (!plate || !gate || !tripDate) continue;
+
+    const dateIso = parseArabicDate(tripDate);
+    const time24 = parseArabicTime(tripTime);
+    const hour24 = parseInt(time24.slice(0, 2)) || 0;
+
+    records.push({
+      amount, plate, card, direction, gate,
+      trip_date_iso: dateIso,
+      trip_time: tripTime,
+      trip_time_24: time24,
+      hour_24: hour24,
+      trip_id: tripId,
+      datetime: `${dateIso}T${time24}`
+    });
+  }
+
+  // ترتيب من الأحدث إلى الأقدم
+  records.sort((a, b) => b.datetime.localeCompare(a.datetime));
+  return records;
+}
+
+// ============== السحب والإفلات ==============
+function setupDragDrop() {
+  const overlay = document.getElementById('dropOverlay');
+  let counter = 0;
+
+  window.addEventListener('dragenter', (e) => {
+    e.preventDefault();
+    if (e.dataTransfer && e.dataTransfer.types.includes('Files')) {
+      counter++;
+      overlay.classList.add('active');
+    }
+  });
+
+  window.addEventListener('dragleave', (e) => {
+    e.preventDefault();
+    counter--;
+    if (counter <= 0) {
+      counter = 0;
+      overlay.classList.remove('active');
+    }
+  });
+
+  window.addEventListener('dragover', (e) => e.preventDefault());
+
+  window.addEventListener('drop', (e) => {
+    e.preventDefault();
+    counter = 0;
+    overlay.classList.remove('active');
+    const file = e.dataTransfer.files[0];
+    if (file) processExcelFile(file);
+  });
+}
+
+// ============== إعادة بناء الفلاتر ==============
+function rebuildFilters() {
+  const directions = [...new Set(RAW_DATA.map(t => t.direction))].filter(Boolean);
+  const gates = [...new Set(RAW_DATA.map(t => t.gate))].filter(Boolean);
+  const plates = [...new Set(RAW_DATA.map(t => t.plate))].filter(Boolean);
+
+  const dirSel = document.getElementById('filterDirection');
+  const gateSel = document.getElementById('filterGate');
+  const plateSel = document.getElementById('filterPlate');
+
+  dirSel.innerHTML = '<option value="">كل الاتجاهات</option>';
+  directions.forEach(d => {
+    const o = document.createElement('option');
+    o.value = d; o.textContent = d;
+    dirSel.appendChild(o);
+  });
+
+  gateSel.innerHTML = '<option value="">كل البوابات</option>';
+  gates.forEach(g => {
+    const o = document.createElement('option');
+    o.value = g; o.textContent = g;
+    gateSel.appendChild(o);
+  });
+
+  plateSel.innerHTML = '<option value="">كل المركبات</option>';
+  plates.forEach(p => {
+    const o = document.createElement('option');
+    o.value = p; o.textContent = `لوحة ${p}`;
+    plateSel.appendChild(o);
+  });
+}
+
+// ============== إدارة الملفات ==============
+function updateFilesNavBadge() {
+  const badge = document.getElementById('navFilesBadge');
+  if (!badge) return;
+  const count = FILES.length;
+  badge.textContent = count;
+  badge.dataset.empty = count === 0 ? 'true' : 'false';
+}
+
+function fmtFileSize(bytes) {
+  if (!bytes) return '—';
+  if (bytes < 1024) return bytes + ' بايت';
+  if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' كيلوبايت';
+  return (bytes / (1024 * 1024)).toFixed(2) + ' ميجابايت';
+}
+
+function fmtUploadTime(iso) {
+  const d = new Date(iso);
+  const now = new Date();
+  const diffMs = now - d;
+  const diffSec = Math.floor(diffMs / 1000);
+  const diffMin = Math.floor(diffSec / 60);
+  const diffHr = Math.floor(diffMin / 60);
+  const diffDay = Math.floor(diffHr / 24);
+
+  if (diffSec < 60) return 'قبل لحظات';
+  if (diffMin < 60) return `قبل ${diffMin} دقيقة`;
+  if (diffHr < 24) return `قبل ${diffHr} ساعة`;
+  if (diffDay < 7) return `قبل ${diffDay} يوم`;
+
+  // تنسيق التاريخ الكامل
+  const months = ['يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر'];
+  return `${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear()}`;
+}
+
+function renderFilesList() {
+  // تحديث ملخص قسم إدارة الملفات
+  const filesCount = FILES.length;
+  const totalTrips = RAW_DATA.length;
+  const totalAmount = RAW_DATA.reduce((s, t) => s + (t.amount || 0), 0);
+
+  document.getElementById('filesCount').textContent = filesCount;
+  document.getElementById('filesTotalTrips').textContent = totalTrips;
+  document.getElementById('filesTotalAmount').innerHTML = totalAmount + ' <span style="font-size: 14px; color: var(--text-tertiary);">د.إ</span>';
+
+  if (filesCount > 0) {
+    const lastFile = FILES.reduce((latest, f) =>
+      new Date(f.uploadedAt) > new Date(latest.uploadedAt) ? f : latest, FILES[0]);
+    document.getElementById('filesLastUpdate').textContent = fmtUploadTime(lastFile.uploadedAt);
+    const d = new Date(lastFile.uploadedAt);
+    document.getElementById('filesLastUpdateTime').textContent = d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false });
+  } else {
+    document.getElementById('filesLastUpdate').textContent = '-';
+    document.getElementById('filesLastUpdateTime').textContent = '';
+  }
+
+  // قائمة الملفات
+  const list = document.getElementById('filesList');
+  if (filesCount === 0) {
+    list.innerHTML = `
+      <div class="files-empty">
+        <svg viewBox="0 0 24 24"><path d="M9 13h6m-3-3v6m-9 1V7a2 2 0 012-2h6l2 2h7a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z"/></svg>
+        <div class="title">لا توجد ملفات بعد</div>
+        <div class="desc">ابدأ برفع ملف Excel لظهور بياناتك هنا</div>
+        <button class="btn btn-primary" onclick="document.getElementById('fileInput').click()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px"><path d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/></svg>
+          <span>رفع أول ملف</span>
+        </button>
+      </div>
+    `;
+    return;
+  }
+
+  // حساب إجماليات "الكل" بدون فلترة (لعرضها في بطاقة الكل)
+  const allSeen = new Set();
+  let allTotalAmount = 0;
+  let allTotalCount = 0;
+  for (const f of FILES) {
+    for (const r of f.records) {
+      const key = r.trip_id || `${r.trip_date_iso}-${r.trip_time_24}-${r.plate}-${r.gate}`;
+      if (!allSeen.has(key)) {
+        allSeen.add(key);
+        allTotalCount++;
+        allTotalAmount += (r.amount || 0);
+      }
+    }
+  }
+
+  // ترتيب الملفات من الأحدث للأقدم
+  const sorted = [...FILES].sort((a, b) =>
+    new Date(b.uploadedAt) - new Date(a.uploadedAt));
+
+  // بطاقة "كل الملفات" أولاً
+  const allActive = selectedFileId === null;
+  let html = `
+    <div class="file-item file-item-all ${allActive ? 'active' : ''}" onclick="selectFile(null)">
+      <div class="file-icon file-icon-all">
+        <svg viewBox="0 0 24 24"><path d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2H5a2 2 0 00-2 2v2m14 0h-7a2 2 0 00-2-2H5"/></svg>
+      </div>
+      <div class="file-info">
+        <div class="file-name">
+          عرض جميع الملفات
+          ${allActive ? '<span class="file-active-badge">معروض الآن</span>' : ''}
+        </div>
+        <div class="file-meta">
+          <span class="file-meta-item">الملفات: <strong>${filesCount}</strong></span>
+          <span class="file-meta-item">إجمالي الرحلات: <strong>${allTotalCount}</strong></span>
+          <span class="file-meta-item">إجمالي المبلغ: <strong>${allTotalAmount} د.إ</strong></span>
+        </div>
+      </div>
+      <div class="file-actions">
+        <div class="file-select-indicator">${allActive ? '✓' : ''}</div>
+      </div>
+    </div>
+  `;
+
+  // ثم بطاقات الملفات الفردية
+  html += sorted.map(f => {
+    const isActive = selectedFileId === f.id;
+    const dupBadge = (f.duplicateCount > 0)
+      ? ` <span style="color: var(--accent-amber); font-size: 11px;">• ${f.duplicateCount} مكرّرة</span>`
+      : '';
+    const newBadge = (f.newCount !== undefined && f.newCount !== f.recordsCount)
+      ? `<span class="file-meta-item">جديدة: <strong>${f.newCount}</strong>${dupBadge}</span>`
+      : '';
+    const defaultLabel = f.isDefault
+      ? '<span style="color: var(--accent-blue); font-size: 11px; margin-right: 8px;">(افتراضي)</span>'
+      : '';
+    const activeBadge = isActive
+      ? '<span class="file-active-badge">معروض الآن</span>'
+      : '';
+
+    return `
+      <div class="file-item ${isActive ? 'active' : ''}" data-id="${f.id}" onclick="selectFile('${f.id}')">
+        <div class="file-icon">
+          <svg viewBox="0 0 24 24"><path d="M9 13h2v-2H9v2zm4 0h2v-2h-2v2zM9 17h2v-2H9v2zm4 0h2v-2h-2v2zM7 7h10M7 7v14a1 1 0 001 1h8a1 1 0 001-1V7M7 7V5a2 2 0 012-2h6a2 2 0 012 2v2"/></svg>
+        </div>
+        <div class="file-info">
+          <div class="file-name">${escapeHtml(f.name)}${defaultLabel}${activeBadge}</div>
+          <div class="file-meta">
+            <span class="file-meta-item">الرحلات: <strong>${f.recordsCount}</strong></span>
+            <span class="file-meta-item">المبلغ: <strong>${f.totalAmount} د.إ</strong></span>
+            ${newBadge}
+            <span class="file-meta-item">الحجم: <strong>${fmtFileSize(f.size)}</strong></span>
+            <span class="file-meta-item">⏱ ${fmtUploadTime(f.uploadedAt)}</span>
+          </div>
+        </div>
+        <div class="file-actions">
+          <div class="file-select-indicator">${isActive ? '✓' : ''}</div>
+          <button class="file-action-btn" title="حذف هذا الملف" onclick="event.stopPropagation(); confirmDeleteFile('${f.id}')">
+            <svg viewBox="0 0 24 24"><path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+          </button>
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  list.innerHTML = html;
+}
+
+function selectFile(fileId) {
+  // fileId = null يعني "عرض الكل"
+  if (selectedFileId === fileId) return; // نفس الاختيار، لا حاجة للتحديث
+  selectedFileId = fileId;
+  recomputeRawData();
+  refreshAll();
+  updateFilterBanner();
+
+  // عرض إشعار توضيحي
+  if (fileId === null) {
+    showToast('info', 'عرض الكل', `تم دمج بيانات ${FILES.length} ملف`, 2500);
+  } else {
+    const f = FILES.find(x => x.id === fileId);
+    if (f) {
+      showToast('info', 'تم تطبيق الفلتر', `عرض بيانات: ${f.name} (${f.recordsCount} رحلة)`, 2500);
+    }
+  }
+}
+
+function updateFilterBanner() {
+  const banner = document.getElementById('activeFilterBanner');
+  if (!banner) return;
+
+  // إخفاء البانر في قسم الملفات نفسه (لأنه واضح هناك من البطاقات)
+  const isFilesSection = document.getElementById('section-files').classList.contains('active');
+
+  if (selectedFileId === null || isFilesSection) {
+    banner.style.display = 'none';
+    return;
+  }
+
+  const f = FILES.find(x => x.id === selectedFileId);
+  if (!f) {
+    banner.style.display = 'none';
+    return;
+  }
+
+  banner.style.display = 'flex';
+  document.getElementById('activeFilterName').textContent = f.name;
+  document.getElementById('activeFilterStats').textContent =
+    `• ${f.recordsCount} رحلة • ${f.totalAmount} د.إ`;
+}
+
+function escapeHtml(s) {
+  const div = document.createElement('div');
+  div.textContent = s;
+  return div.innerHTML;
+}
+
+// ============== مربع حوار التأكيد ==============
+let pendingAction = null;
+
+function openConfirm(title, message, onConfirm) {
+  document.getElementById('confirmTitle').textContent = title;
+  document.getElementById('confirmMessage').textContent = message;
+  pendingAction = onConfirm;
+  document.getElementById('confirmOverlay').classList.add('active');
+}
+
+function closeConfirm() {
+  document.getElementById('confirmOverlay').classList.remove('active');
+  pendingAction = null;
+}
+
+function executeConfirm() {
+  if (typeof pendingAction === 'function') {
+    pendingAction();
+  } else {
+    closeConfirm();
+  }
+}
+
+function confirmDeleteFile(fileId) {
+  const file = FILES.find(f => f.id === fileId);
+  if (!file) return;
+  openConfirm(
+    'حذف الملف؟',
+    `سيتم حذف "${file.name}" وجميع رحلاته (${file.recordsCount} رحلة) من اللوحة. هذا الإجراء لا يمكن التراجع عنه.`,
+    () => deleteFile(fileId)
+  );
+}
+
+function deleteFile(fileId) {
+  const file = FILES.find(f => f.id === fileId);
+  if (!file) return;
+  // إذا كان هذا الملف هو المحدد حالياً، أعد للوضع الكلي
+  if (selectedFileId === fileId) selectedFileId = null;
+  FILES = FILES.filter(f => f.id !== fileId);
+  saveFilesToStorage();
+  recomputeRawData();
+  refreshAll();
+  updateFilterBanner();
+  closeConfirm();
+  showToast('success', 'تم الحذف', `تم حذف "${file.name}" (${file.recordsCount} رحلة)`);
+}
+
+function confirmClearAll() {
+  if (FILES.length === 0) {
+    showToast('info', 'لا يوجد شيء للحذف', 'القائمة فارغة بالفعل');
+    return;
+  }
+  openConfirm(
+    'تفريغ جميع البيانات؟',
+    `سيتم حذف ${FILES.length} ملف وجميع الرحلات (${RAW_DATA.length} رحلة). هذا الإجراء لا يمكن التراجع عنه.`,
+    clearAll
+  );
+}
+
+function clearAll() {
+  FILES = [];
+  selectedFileId = null;
+  saveFilesToStorage();
+  recomputeRawData();
+  refreshAll();
+  updateFilterBanner();
+  closeConfirm();
+  showToast('success', 'تم التفريغ', 'تم حذف جميع الملفات والبيانات');
+}
+
+// ============== الإشعارات ==============
+const TOAST_ICONS = {
+  success: '<svg viewBox="0 0 24 24"><path d="M5 13l4 4L19 7"/></svg>',
+  error: '<svg viewBox="0 0 24 24"><path d="M6 18L18 6M6 6l12 12"/></svg>',
+  info: '<svg viewBox="0 0 24 24"><path d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>',
+  warning: '<svg viewBox="0 0 24 24"><path d="M12 9v2m0 4h.01M5 19h14a2 2 0 001.84-2.75L13.74 4a2 2 0 00-3.48 0l-7.1 12.25A2 2 0 005 19z"/></svg>'
+};
+
+function showToast(type, title, message, duration) {
+  duration = duration || 4000;
+  const container = document.getElementById('toastContainer');
+  const toast = document.createElement('div');
+  toast.className = `toast ${type === 'success' ? '' : type}`;
+  toast.innerHTML = `
+    <div class="toast-icon">${TOAST_ICONS[type] || TOAST_ICONS.info}</div>
+    <div class="toast-body">
+      <div class="toast-title">${title}</div>
+      <div class="toast-message">${message}</div>
+    </div>
+    <button class="toast-close" onclick="this.parentElement.remove()">×</button>
+  `;
+  container.appendChild(toast);
+  setTimeout(() => {
+    if (toast.parentElement) {
+      toast.style.transition = 'all 0.3s ease';
+      toast.style.opacity = '0';
+      toast.style.transform = 'translateX(-30px)';
+      setTimeout(() => toast.remove(), 300);
+    }
+  }, duration);
+}
+
+document.addEventListener('DOMContentLoaded', init);
+</script>
+</body>
+</html>
