@@ -87,7 +87,7 @@
       display: flex;
       align-items: center;
       gap: 12px;
-      margin-bottom: 28px;
+      margin-bottom: 24px;
       font-size: 0.9rem;
       color: var(--text-muted);
     }
@@ -97,8 +97,14 @@
       font-weight: 700;
     }
 
-    .search-box {
+    .search-row {
+      display: flex;
+      gap: 10px;
       margin-bottom: 32px;
+    }
+
+    .search-box {
+      flex: 1;
     }
 
     .search-box input {
@@ -117,6 +123,25 @@
       border-color: var(--accent);
     }
 
+    .refresh-btn {
+      background-color: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 12px;
+      padding: 0 18px;
+      color: var(--text-muted);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.1rem;
+      transition: all 0.2s;
+    }
+
+    .refresh-btn:hover {
+      color: #fff;
+      border-color: var(--accent);
+    }
+
     .apps-grid {
       display: grid;
       grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
@@ -132,6 +157,7 @@
       flex-direction: column;
       justify-content: space-between;
       transition: transform 0.2s ease, border-color 0.2s ease;
+      min-height: 190px;
     }
 
     .app-card:hover {
@@ -143,7 +169,7 @@
       display: flex;
       align-items: center;
       gap: 14px;
-      margin-bottom: 14px;
+      margin-bottom: 12px;
     }
 
     .app-avatar {
@@ -156,18 +182,20 @@
       align-items: center;
       justify-content: center;
       font-size: 1.4rem;
+      flex-shrink: 0;
     }
 
     .app-title {
-      font-size: 1.15rem;
+      font-size: 1.12rem;
       font-weight: 700;
+      color: #fff;
     }
 
     .app-desc {
       color: var(--text-muted);
-      font-size: 0.9rem;
-      line-height: 1.6;
-      margin-bottom: 18px;
+      font-size: 0.88rem;
+      line-height: 1.5;
+      margin-bottom: 16px;
       flex-grow: 1;
     }
 
@@ -182,7 +210,7 @@
     .tag {
       background-color: var(--badge-bg);
       color: var(--badge-text);
-      font-size: 0.78rem;
+      font-size: 0.76rem;
       font-weight: 500;
       padding: 4px 10px;
       border-radius: 9999px;
@@ -192,9 +220,9 @@
       background-color: var(--accent);
       color: #fff;
       text-decoration: none;
-      padding: 8px 16px;
+      padding: 7px 15px;
       border-radius: 10px;
-      font-size: 0.88rem;
+      font-size: 0.85rem;
       font-weight: 600;
       display: inline-flex;
       align-items: center;
@@ -204,6 +232,14 @@
 
     .launch-btn:hover {
       background-color: var(--accent-hover);
+    }
+
+    .status-msg {
+      text-align: center;
+      grid-column: 1 / -1;
+      padding: 40px;
+      color: var(--text-muted);
+      font-size: 1rem;
     }
 
     footer {
@@ -221,7 +257,7 @@
     <header>
       <div class="logo-icon">
         <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
         </svg>
       </div>
       <h1>مكتبة التطبيقات</h1>
@@ -237,40 +273,15 @@
       </div>
     </div>
 
-    <div class="search-box">
-      <input type="text" id="searchInput" placeholder="ابحث عن تطبيق..." onkeyup="filterApps()">
+    <div class="search-row">
+      <div class="search-box">
+        <input type="text" id="searchInput" placeholder="ابحث عن تطبيق..." onkeyup="filterApps()">
+      </div>
+      <button class="refresh-btn" onclick="fetchRepoApps(true)" title="تحديث قائمة التطبيقات">↻</button>
     </div>
 
-    <div class="apps-grid">
-      <!-- بطاقة تطبيق رَفّ -->
-      <div class="app-card">
-        <div>
-          <div class="app-header">
-            <div class="app-avatar">🗂️</div>
-            <div class="app-title">رَفّ</div>
-          </div>
-          <p class="app-desc">مكتبة رقمية محلية لأرشفة الصور والمستندات وحفظها في المتصفح مع تصنيف بالوسوم وبدون الحاجة لإنترنت.</p>
-        </div>
-        <div class="app-footer">
-          <span class="tag">أرشفة محلية</span>
-          <a href="raff.html" class="launch-btn">فتح التطبيق ↗</a>
-        </div>
-      </div>
-
-      <!-- بطاقة تطبيق اختصارات الكيبورد -->
-      <div class="app-card">
-        <div>
-          <div class="app-header">
-            <div class="app-avatar">⌨️</div>
-            <div class="app-title">اختصارات كيبورد</div>
-          </div>
-          <p class="app-desc">دليل ومرجع سريع لاختصارات لوحة المفاتيح والدردشة لتسريع الكتابة والعمل بإنتاجية أعلى.</p>
-        </div>
-        <div class="app-footer">
-          <span class="tag">إنتاجية وأدوات</span>
-          <a href="shortcuts.html" class="launch-btn">فتح التطبيق ↗</a>
-        </div>
-      </div>
+    <div class="apps-grid" id="appsContainer">
+      <div class="status-msg">جاري تحميل التطبيقات المتاحة...</div>
     </div>
 
     <footer>
@@ -279,12 +290,122 @@
   </div>
 
   <script>
+    const REPO_OWNER = 'amakki99';
+    const REPO_NAME = 'raff';
+
+    // اختيار أيقونة مناسبة تلقائياً بناءً على اسم التطبيق
+    function pickIcon(name) {
+      const lower = name.toLowerCase();
+      if (lower.includes('رف') || lower.includes('raff') || lower.includes('ملف')) return '🗂️';
+      if (lower.includes('كيبورد') || lower.includes('اختصار') || lower.includes('shortcut')) return '⌨️';
+      if (lower.includes('شات') || lower.includes('chat') || lower.includes('دردشة')) return '💬';
+      if (lower.includes('حاسب') || lower.includes('calc')) return '🧮';
+      if (lower.includes('ملاحظ') || lower.includes('note') || lower.includes('مهمة')) return '📝';
+      if (lower.includes('تصميم') || lower.includes('خط') || lower.includes('فن')) return '🎨';
+      return '⚡';
+    }
+
+    async function fetchRepoApps(forceRefresh = false) {
+      const container = document.getElementById('appsContainer');
+      const cacheKey = 'apps_catalog_cache';
+      const cacheTimeKey = 'apps_catalog_time';
+
+      // التحقق من وجود ذاكرة مؤقتة حديثة لتسريع الفتح
+      if (!forceRefresh) {
+        const cached = localStorage.getItem(cacheKey);
+        const time = localStorage.getItem(cacheTimeKey);
+        if (cached && time && (Date.now() - parseInt(time) < 1000 * 60 * 10)) {
+          renderApps(JSON.parse(cached));
+          return;
+        }
+      }
+
+      container.innerHTML = '<div class="status-msg">جاري تحديث قائمة التطبيقات من المستودع...</div>';
+
+      try {
+        const res = await fetch(`https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/contents`);
+        if (!res.ok) throw new Error('تعذر الوصول للمستودع');
+        const files = await res.json();
+
+        // فلترة ملفات الـ HTML واستثناء الصفحة الرئيسية
+        const htmlFiles = files.filter(f => 
+          f.type === 'file' && 
+          f.name.toLowerCase().endsWith('.html') && 
+          f.name.toLowerCase() !== 'index.html'
+        );
+
+        const apps = await Promise.all(htmlFiles.map(async (file) => {
+          let title = file.name.replace('.html', '');
+          let desc = 'تطبيق ويب مستقل يعمل في المتصفح.';
+          let tag = 'أداة';
+
+          try {
+            // قراءة العنوان والوصف مباشرة من داخل ملف الـ HTML
+            const docRes = await fetch(encodeURIComponent(file.name));
+            if (docRes.ok) {
+              const htmlText = await docRes.text();
+              const parser = new DOMParser();
+              const doc = parser.parseFromString(htmlText, 'text/html');
+              const docTitle = doc.querySelector('title')?.innerText;
+              const docDesc = doc.querySelector('meta[name="description"]')?.content;
+              if (docTitle) title = docTitle.replace(/[–|-].*$/, '').trim();
+              if (docDesc) desc = docDesc;
+            }
+          } catch(e) {}
+
+          return {
+            title: title,
+            url: file.name,
+            desc: desc,
+            tag: tag,
+            icon: pickIcon(title + ' ' + file.name)
+          };
+        }));
+
+        localStorage.setItem(cacheKey, JSON.stringify(apps));
+        localStorage.setItem(cacheTimeKey, Date.now().toString());
+        renderApps(apps);
+
+      } catch (err) {
+        const cached = localStorage.getItem(cacheKey);
+        if (cached) {
+          renderApps(JSON.parse(cached));
+        } else {
+          container.innerHTML = '<div class="status-msg">تعذر تحميل التطبيقات حالياً. تأكد من اتصال الإنترنت أو اضغط ↻ للتحديث.</div>';
+        }
+      }
+    }
+
+    function renderApps(apps) {
+      const container = document.getElementById('appsContainer');
+      if (!apps || apps.length === 0) {
+        container.innerHTML = '<div class="status-msg">لا توجد تطبيقات إضافية حتى الآن.</div>';
+        return;
+      }
+
+      container.innerHTML = apps.map(app => `
+        <div class="app-card">
+          <div>
+            <div class="app-header">
+              <div class="app-avatar">${app.icon}</div>
+              <div class="app-title">${app.title}</div>
+            </div>
+            <p class="app-desc">${app.desc}</p>
+          </div>
+          <div class="app-footer">
+            <span class="tag">${app.tag}</span>
+            <a href="${encodeURI(app.url)}" class="launch-btn">فتح التطبيق ↗</a>
+          </div>
+        </div>
+      `).join('');
+    }
+
     function filterApps() {
       const query = document.getElementById('searchInput').value.toLowerCase();
       const cards = document.querySelectorAll('.app-card');
       cards.forEach(card => {
-        const title = card.querySelector('.app-title').innerText.toLowerCase();
-        const desc = card.querySelector('.app-desc').innerText.toLowerCase();
+        const title = card.querySelector('.app-title')?.innerText.toLowerCase() || '';
+        const desc = card.querySelector('.app-desc')?.innerText.toLowerCase() || '';
         if (title.includes(query) || desc.includes(query)) {
           card.style.display = 'flex';
         } else {
@@ -292,6 +413,9 @@
         }
       });
     }
+
+    // التحميل المباشر عند فتح الصفحة
+    fetchRepoApps();
   </script>
 </body>
 </html>
