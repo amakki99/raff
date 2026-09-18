@@ -1,0 +1,2028 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>العداد التنازلي | Countdown</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@300;400;500;700;800;900&display=swap" rel="stylesheet">
+  
+  <style>
+    :root {
+      --bg-main: #000000;
+      --bg-card: #1c1c1e;
+      --bg-card-hover: #2c2c2e;
+      --bg-modal: #1c1c1e;
+      --bg-input: #2c2c2e;
+      --bg-menu: #242426;
+      --border-color: rgba(255, 255, 255, 0.12);
+      --text-main: #ffffff;
+      --text-muted: #8e8e93;
+      --text-dim: #636366;
+      --accent-blue: #0a84ff;
+      --accent-blue-hover: #0071e3;
+      --danger-red: #ff453a;
+      --glass-bg: rgba(255, 255, 255, 0.08);
+      --shadow-popover: 0 12px 36px rgba(0, 0, 0, 0.7);
+    }
+
+    [data-theme="light"] {
+      --bg-main: #f2f2f7;
+      --bg-card: #ffffff;
+      --bg-card-hover: #e5e5ea;
+      --bg-modal: #ffffff;
+      --bg-input: #e5e5ea;
+      --bg-menu: #ffffff;
+      --border-color: rgba(0, 0, 0, 0.1);
+      --text-main: #000000;
+      --text-muted: #6e6e73;
+      --text-dim: #8e8e93;
+      --accent-blue: #007aff;
+      --accent-blue-hover: #0062cc;
+      --danger-red: #ff3b30;
+      --glass-bg: rgba(0, 0, 0, 0.05);
+      --shadow-popover: 0 12px 36px rgba(0, 0, 0, 0.15);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      -webkit-tap-highlight-color: transparent;
+      font-family: -apple-system, BlinkMacSystemFont, "Tajawal", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    }
+
+    body {
+      background-color: var(--bg-main);
+      color: var(--text-main);
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      overflow-x: hidden;
+      transition: background-color 0.3s ease, color 0.3s ease;
+    }
+
+    .app-container {
+      width: 100%;
+      max-width: 480px;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+      background: var(--bg-main);
+      padding: 16px 16px 80px 16px;
+    }
+
+    /* Top Bar Controls */
+    .header-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 14px;
+      padding-top: 4px;
+    }
+
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      position: relative;
+    }
+
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .btn-edit-capsule {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      color: var(--text-main);
+      font-size: 14px;
+      font-weight: 700;
+      padding: 6px 16px;
+      border-radius: 20px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .btn-edit-capsule:hover {
+      background: var(--bg-card-hover);
+    }
+
+    /* Sort Dropdown Button & Popover */
+    .sort-container {
+      position: relative;
+    }
+
+    .btn-sort-capsule {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      color: var(--text-main);
+      font-size: 14px;
+      font-weight: 700;
+      padding: 6px 14px;
+      border-radius: 20px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.2s;
+    }
+    .btn-sort-capsule:hover {
+      background: var(--bg-card-hover);
+    }
+    .btn-sort-capsule .arrow {
+      font-size: 11px;
+      opacity: 0.8;
+      transition: transform 0.2s;
+    }
+
+    .sort-menu-popover {
+      position: absolute;
+      top: calc(100% + 8px);
+      right: 0;
+      background: var(--bg-menu);
+      border: 1px solid var(--border-color);
+      border-radius: 18px;
+      width: 190px;
+      box-shadow: var(--shadow-popover);
+      z-index: 120;
+      padding: 6px;
+      display: none;
+      animation: popIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .sort-menu-popover.open {
+      display: block;
+    }
+
+    .sort-menu-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 12px;
+      border-radius: 12px;
+      cursor: pointer;
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--text-main);
+      transition: background 0.15s;
+    }
+    .sort-menu-item:hover {
+      background: rgba(255, 255, 255, 0.08);
+    }
+    [data-theme="light"] .sort-menu-item:hover {
+      background: rgba(0, 0, 0, 0.05);
+    }
+    .sort-menu-item .sort-check {
+      font-size: 14px;
+      color: var(--accent-blue);
+      font-weight: 900;
+      width: 18px;
+      text-align: left;
+    }
+
+    .btn-icon {
+      background: var(--glass-bg);
+      border: 1px solid var(--border-color);
+      color: var(--text-main);
+      border-radius: 50%;
+      width: 36px;
+      height: 36px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      font-size: 18px;
+      font-weight: bold;
+      transition: all 0.2s;
+    }
+    .btn-icon:hover {
+      background: var(--bg-card-hover);
+      transform: scale(1.05);
+    }
+
+    /* Title Row */
+    .app-title-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      margin-bottom: 14px;
+    }
+    .app-title {
+      font-size: 34px;
+      font-weight: 800;
+      letter-spacing: -0.5px;
+    }
+    .theme-toggle-btn {
+      background: var(--glass-bg);
+      border: 1px solid var(--border-color);
+      color: var(--text-main);
+      font-size: 13px;
+      padding: 6px 12px;
+      border-radius: 20px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-weight: 600;
+    }
+
+    /* Search Box */
+    .search-box {
+      position: relative;
+      margin-bottom: 18px;
+    }
+    .search-box input {
+      width: 100%;
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 10px 38px 10px 14px;
+      color: var(--text-main);
+      font-size: 15px;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    .search-box input:focus {
+      border-color: var(--accent-blue);
+    }
+    .search-icon {
+      position: absolute;
+      right: 12px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--text-muted);
+      font-size: 15px;
+      pointer-events: none;
+    }
+
+    /* Empty State */
+    .empty-state {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      margin-top: 60px;
+      padding: 30px 20px;
+      animation: fadeIn 0.4s ease;
+    }
+    .empty-icon-circle {
+      width: 96px;
+      height: 96px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, rgba(10, 132, 255, 0.15), rgba(10, 132, 255, 0.05));
+      border: 2px dashed var(--accent-blue);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 40px;
+      color: var(--accent-blue);
+      margin-bottom: 20px;
+      cursor: pointer;
+      transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      box-shadow: 0 10px 25px rgba(10, 132, 255, 0.2);
+    }
+    .empty-icon-circle:hover {
+      transform: scale(1.08);
+      background: rgba(10, 132, 255, 0.2);
+    }
+    .empty-title {
+      font-size: 20px;
+      font-weight: 700;
+      margin-bottom: 8px;
+    }
+    .empty-desc {
+      font-size: 14px;
+      color: var(--text-muted);
+      max-width: 280px;
+      line-height: 1.5;
+      margin-bottom: 24px;
+    }
+    .btn-create-primary {
+      background: var(--accent-blue);
+      color: #ffffff;
+      border: none;
+      padding: 13px 26px;
+      border-radius: 14px;
+      font-size: 16px;
+      font-weight: 700;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      transition: all 0.2s;
+      box-shadow: 0 4px 14px rgba(10, 132, 255, 0.4);
+    }
+    .btn-create-primary:hover {
+      background: var(--accent-blue-hover);
+      transform: translateY(-2px);
+    }
+
+    /* Cards List */
+    .cards-list {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .countdown-card {
+      position: relative;
+      border-radius: 18px;
+      padding: 14px 16px;
+      color: #ffffff;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      cursor: pointer;
+      overflow: hidden;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+    .countdown-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
+    }
+
+    .card-left {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex: 1;
+      min-width: 0;
+    }
+
+    /* Paper Calendar Icon */
+    .paper-cal-icon {
+      width: 44px;
+      height: 48px;
+      background: #ffffff;
+      border-radius: 6px;
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      box-shadow: 0 3px 8px rgba(0, 0, 0, 0.3);
+      flex-shrink: 0;
+      overflow: hidden;
+    }
+    .paper-cal-header {
+      height: 14px;
+      background: #c93b3b;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 3px;
+    }
+    .spiral-ring {
+      width: 3px;
+      height: 5px;
+      background: #555;
+      border-radius: 2px;
+    }
+    .paper-cal-body {
+      flex: 1;
+      background: #ffffff;
+      background-image: 
+        linear-gradient(to right, rgba(0,0,0,0.06) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(0,0,0,0.06) 1px, transparent 1px);
+      background-size: 8px 8px;
+      position: relative;
+    }
+    .paper-cal-curl {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      width: 0;
+      height: 0;
+      border-style: solid;
+      border-width: 0 0 12px 12px;
+      border-color: transparent transparent rgba(0,0,0,0.2) transparent;
+    }
+
+    .card-info {
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
+      flex: 1;
+    }
+    .card-title {
+      font-size: 16px;
+      font-weight: 700;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      margin-bottom: 3px;
+    }
+    .card-meta {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 12px;
+      opacity: 0.9;
+    }
+    .star-icon {
+      font-size: 11px;
+    }
+
+    .card-right {
+      text-align: left;
+      flex-shrink: 0;
+      margin-right: 8px;
+      direction: ltr;
+    }
+    .card-days-number {
+      font-size: 26px;
+      font-weight: 800;
+      line-height: 1.1;
+      letter-spacing: -0.5px;
+    }
+    .card-days-label {
+      font-size: 12px;
+      font-weight: 500;
+      opacity: 0.85;
+      text-transform: lowercase;
+    }
+
+    .card-delete-btn {
+      background: rgba(255, 69, 58, 0.9);
+      border: none;
+      color: #fff;
+      border-radius: 50%;
+      width: 28px;
+      height: 28px;
+      margin-right: 8px;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      font-size: 13px;
+    }
+    .edit-mode .card-delete-btn {
+      display: flex;
+    }
+
+    /* Floating Add Button */
+    .fab-add {
+      position: fixed;
+      bottom: 24px;
+      left: 24px;
+      width: 54px;
+      height: 54px;
+      border-radius: 50%;
+      background: var(--accent-blue);
+      color: #ffffff;
+      border: none;
+      box-shadow: 0 6px 18px rgba(10, 132, 255, 0.45);
+      font-size: 28px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      z-index: 90;
+      transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+    .fab-add:hover {
+      transform: scale(1.1);
+      background: var(--accent-blue-hover);
+    }
+
+    /* MODAL */
+    .modal-overlay {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0, 0, 0, 0.7);
+      backdrop-filter: blur(8px);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 200;
+      padding: 16px;
+    }
+    .modal-overlay.open {
+      display: flex;
+    }
+    .modal-card {
+      width: 100%;
+      max-width: 440px;
+      max-height: 92vh;
+      background: var(--bg-modal);
+      border-radius: 24px;
+      overflow-y: auto;
+      border: 1px solid var(--border-color);
+      box-shadow: var(--shadow-popover);
+      display: flex;
+      flex-direction: column;
+    }
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 18px 20px;
+      border-bottom: 1px solid var(--border-color);
+      position: sticky;
+      top: 0;
+      background: var(--bg-modal);
+      z-index: 10;
+    }
+    .modal-header-btn {
+      background: none;
+      border: none;
+      color: var(--accent-blue);
+      font-size: 16px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    .modal-header-btn.save-btn {
+      background: var(--accent-blue);
+      color: #fff;
+      padding: 6px 14px;
+      border-radius: 18px;
+    }
+    .modal-title {
+      font-size: 17px;
+      font-weight: 700;
+    }
+
+    .modal-body {
+      padding: 18px 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+    }
+
+    .name-input-group {
+      background: var(--bg-input);
+      border-radius: 16px;
+      padding: 12px 16px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      border: 1px solid var(--border-color);
+    }
+    .name-input-icon {
+      width: 34px;
+      height: 38px;
+      background: #fff;
+      border-radius: 5px;
+      overflow: hidden;
+      flex-shrink: 0;
+    }
+    .name-input-icon .mini-h {
+      height: 10px;
+      background: #c93b3b;
+    }
+    .name-input {
+      width: 100%;
+      background: none;
+      border: none;
+      outline: none;
+      font-size: 17px;
+      color: var(--text-main);
+      font-weight: 600;
+    }
+
+    .section-label {
+      font-size: 13px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--text-muted);
+      font-weight: 600;
+      margin-bottom: 6px;
+    }
+
+    .date-tabs {
+      display: flex;
+      background: var(--bg-input);
+      border-radius: 12px;
+      padding: 3px;
+      margin-bottom: 12px;
+      border: 1px solid var(--border-color);
+    }
+    .date-tab {
+      flex: 1;
+      text-align: center;
+      padding: 8px 10px;
+      font-size: 13px;
+      font-weight: 600;
+      border-radius: 10px;
+      cursor: pointer;
+      color: var(--text-muted);
+      transition: all 0.2s;
+    }
+    .date-tab.active {
+      background: var(--bg-modal);
+      color: var(--text-main);
+      box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+    }
+
+    .manual-date-box {
+      background: var(--bg-input);
+      border-radius: 16px;
+      padding: 16px;
+      border: 1px solid var(--border-color);
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .manual-inputs-grid {
+      display: grid;
+      grid-template-columns: 1fr 1.2fr 1fr;
+      gap: 8px;
+    }
+    .manual-col {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .manual-col label {
+      font-size: 11px;
+      color: var(--text-muted);
+      font-weight: 600;
+    }
+    .manual-col input, .manual-col select {
+      width: 100%;
+      background: var(--bg-modal);
+      border: 1px solid var(--border-color);
+      color: var(--text-main);
+      padding: 8px 10px;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 600;
+      outline: none;
+    }
+    .native-date-wrapper {
+      margin-top: 4px;
+      border-top: 1px dashed var(--border-color);
+      padding-top: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .native-date-wrapper span {
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+    .native-date-wrapper input[type="date"] {
+      background: var(--bg-modal);
+      border: 1px solid var(--border-color);
+      color: var(--text-main);
+      padding: 6px 12px;
+      border-radius: 8px;
+      font-size: 13px;
+      outline: none;
+    }
+
+    .calendar-container {
+      background: var(--bg-input);
+      border-radius: 16px;
+      padding: 16px;
+      border: 1px solid var(--border-color);
+    }
+    .calendar-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 14px;
+      direction: ltr;
+    }
+    .cal-title-jump {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      cursor: pointer;
+      font-weight: 700;
+      font-size: 16px;
+    }
+    .cal-nav-buttons {
+      display: flex;
+      gap: 6px;
+      align-items: center;
+    }
+    .cal-nav-btn {
+      background: var(--bg-modal);
+      border: 1px solid var(--border-color);
+      color: var(--text-main);
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: bold;
+    }
+    .cal-nav-btn:hover {
+      background: var(--bg-card-hover);
+    }
+    .calendar-weekdays {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      text-align: center;
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--text-muted);
+      margin-bottom: 8px;
+      direction: ltr;
+    }
+    .calendar-days-grid {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 4px;
+      direction: ltr;
+    }
+    .cal-day-cell {
+      aspect-ratio: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+      font-weight: 600;
+      border-radius: 50%;
+      cursor: pointer;
+      color: var(--text-main);
+      transition: all 0.15s;
+    }
+    .cal-day-cell.empty {
+      cursor: default;
+      pointer-events: none;
+    }
+    .cal-day-cell:hover:not(.empty) {
+      background: rgba(255, 255, 255, 0.15);
+    }
+    .cal-day-cell.selected {
+      background: #ffffff !important;
+      color: #000000 !important;
+      font-weight: 800;
+    }
+    .cal-day-cell.today-circle {
+      border: 1px solid var(--accent-blue);
+    }
+
+    .cal-quick-jumper {
+      display: none;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin-bottom: 12px;
+      padding: 10px;
+      background: var(--bg-modal);
+      border-radius: 10px;
+      border: 1px solid var(--border-color);
+    }
+    .cal-quick-jumper.show {
+      display: grid;
+    }
+    .cal-quick-jumper select, .cal-quick-jumper input {
+      background: var(--bg-input);
+      border: 1px solid var(--border-color);
+      color: var(--text-main);
+      padding: 6px 8px;
+      border-radius: 6px;
+      font-size: 13px;
+      font-weight: 600;
+      outline: none;
+    }
+
+    .toggle-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px 0;
+      border-top: 1px solid var(--border-color);
+    }
+    .toggle-info {
+      display: flex;
+      flex-direction: column;
+    }
+    .toggle-title {
+      font-size: 15px;
+      font-weight: 600;
+    }
+    .toggle-subtitle {
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+    .ios-switch {
+      position: relative;
+      display: inline-block;
+      width: 50px;
+      height: 30px;
+      flex-shrink: 0;
+    }
+    .ios-switch input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+    .slider {
+      position: absolute;
+      cursor: pointer;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background-color: #39393d;
+      transition: .3s;
+      border-radius: 34px;
+    }
+    .slider:before {
+      position: absolute;
+      content: "";
+      height: 24px;
+      width: 24px;
+      left: 3px;
+      bottom: 3px;
+      background-color: white;
+      transition: .3s;
+      border-radius: 50%;
+    }
+    input:checked + .slider {
+      background-color: #34c759;
+    }
+    input:checked + .slider:before {
+      transform: translateX(20px);
+    }
+
+    .color-picker-row {
+      display: flex;
+      gap: 12px;
+      overflow-x: auto;
+      padding: 6px 0 12px 0;
+    }
+    .color-dot {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      cursor: pointer;
+      flex-shrink: 0;
+      border: 3px solid transparent;
+      transition: transform 0.2s;
+    }
+    .color-dot:hover {
+      transform: scale(1.1);
+    }
+    .color-dot.selected {
+      border-color: #ffffff;
+      box-shadow: 0 0 0 2px var(--accent-blue);
+    }
+
+    /* Detail View */
+    .detail-overlay {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      z-index: 150;
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: space-between;
+      padding: 24px 20px;
+      overflow-y: auto;
+      color: #ffffff;
+    }
+    .detail-overlay.open {
+      display: flex;
+    }
+    .detail-top-nav {
+      width: 100%;
+      max-width: 440px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+    .detail-btn-icon {
+      width: 42px;
+      height: 42px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.15);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 255, 255, 0.25);
+      color: #ffffff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      font-size: 16px;
+      transition: all 0.2s;
+    }
+
+    .detail-center-content {
+      width: 100%;
+      max-width: 380px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      margin: auto 0;
+    }
+    .detail-paper-cal {
+      width: 90px;
+      height: 100px;
+      background: #ffffff;
+      border-radius: 12px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+      margin-bottom: 28px;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      position: relative;
+    }
+    .detail-paper-cal .detail-cal-h {
+      height: 28px;
+      background: #c93b3b;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #fff;
+      font-size: 12px;
+      font-weight: 800;
+    }
+    .detail-paper-cal .detail-cal-b {
+      flex: 1;
+      background-image: 
+        linear-gradient(to right, rgba(0,0,0,0.06) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(0,0,0,0.06) 1px, transparent 1px);
+      background-size: 12px 12px;
+      position: relative;
+    }
+    .detail-paper-cal .detail-cal-curl {
+      position: absolute;
+      bottom: 0; left: 0;
+      width: 0; height: 0;
+      border-style: solid;
+      border-width: 0 0 24px 24px;
+      border-color: transparent transparent rgba(0,0,0,0.25) transparent;
+    }
+
+    .detail-title {
+      font-size: 34px;
+      font-weight: 800;
+      margin-bottom: 6px;
+    }
+    .detail-date-str {
+      font-size: 16px;
+      opacity: 0.9;
+      margin-bottom: 24px;
+      direction: ltr;
+    }
+
+    .detail-big-block {
+      width: 100%;
+      background: rgba(255, 255, 255, 0.12);
+      backdrop-filter: blur(20px);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 20px;
+      padding: 16px 20px;
+      display: flex;
+      justify-content: space-around;
+      align-items: center;
+      margin-bottom: 14px;
+      direction: ltr;
+      cursor: pointer;
+    }
+    .detail-unit-col {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    .detail-unit-num {
+      font-size: 40px;
+      font-weight: 900;
+      line-height: 1;
+    }
+    .detail-unit-label {
+      font-size: 13px;
+      opacity: 0.8;
+      margin-top: 6px;
+      text-transform: lowercase;
+    }
+
+    .detail-time-digits {
+      font-size: 26px;
+      font-weight: 800;
+      letter-spacing: 1px;
+    }
+    .detail-time-sub {
+      display: flex;
+      justify-content: space-between;
+      width: 170px;
+      font-size: 11px;
+      opacity: 0.75;
+      direction: ltr;
+    }
+
+    .detail-bottom-nav {
+      width: 100%;
+      max-width: 440px;
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      margin-top: 20px;
+    }
+    .detail-nav-pill {
+      background: rgba(255, 255, 255, 0.12);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      backdrop-filter: blur(12px);
+      border-radius: 24px;
+      padding: 8px 16px;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 12px;
+      cursor: pointer;
+      max-width: 48%;
+      overflow: hidden;
+    }
+
+    @keyframes popIn {
+      from { opacity: 0; transform: scale(0.92) translateY(-6px); }
+      to { opacity: 1; transform: scale(1) translateY(0); }
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="app-container">
+    <!-- Header Bar With Edit and Sort Menu -->
+    <div class="header-bar">
+      <div class="header-left">
+        <!-- Edit Button -->
+        <button class="btn-edit-capsule" id="editToggleBtn">تعديل</button>
+
+        <!-- Interactive Sort Dropdown -->
+        <div class="sort-container">
+          <button class="btn-sort-capsule" id="sortMenuBtn">
+            <span>ترتيب</span>
+            <span class="arrow">⌄</span>
+          </button>
+          
+          <div class="sort-menu-popover" id="sortMenuPopover">
+            <div class="sort-menu-item active" data-sort="nearest">
+              <span class="sort-label">الأقرب موعداً</span>
+              <span class="sort-check">✓</span>
+            </div>
+            <div class="sort-menu-item" data-sort="farthest">
+              <span class="sort-label">الأبعد موعداً</span>
+              <span class="sort-check"></span>
+            </div>
+            <div class="sort-menu-item" data-sort="created">
+              <span class="sort-label">تاريخ الإضافة</span>
+              <span class="sort-check"></span>
+            </div>
+            <div class="sort-menu-item" data-sort="alpha">
+              <span class="sort-label">أبجدياً</span>
+              <span class="sort-check"></span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="header-right">
+        <button class="btn-icon" id="headerAddBtn" title="إضافة عداد">+</button>
+      </div>
+    </div>
+
+    <!-- App Title & Dark Mode Toggle -->
+    <div class="app-title-row">
+      <h1 class="app-title">العدادات</h1>
+      <button class="theme-toggle-btn" id="themeToggleBtn">
+        <span id="themeIcon">☀️</span>
+        <span id="themeText">الوضع الفاتح</span>
+      </button>
+    </div>
+
+    <!-- Search Box -->
+    <div class="search-box">
+      <span class="search-icon">🔍</span>
+      <input type="text" id="searchInput" placeholder="بحث في العدادات..." />
+    </div>
+
+    <!-- Empty State -->
+    <div class="empty-state" id="emptyState">
+      <div class="empty-icon-circle" id="emptyAddCircleBtn" title="إضافة عداد تنازلي">+</div>
+      <h2 class="empty-title">لا توجد عدادات تنازلية بعد</h2>
+      <p class="empty-desc">أضف تاريخاً مستقبلياً لحساب الأيام المتبقية، أو تاريخاً قديماً لحساب الأيام التي مضت.</p>
+      <button class="btn-create-primary" id="emptyCreateBtn">
+        <span>+ إضافة عداد جديد</span>
+      </button>
+    </div>
+
+    <!-- Cards List -->
+    <div class="cards-list" id="cardsList" style="display: none;"></div>
+  </div>
+
+  <!-- Floating Add Button -->
+  <button class="fab-add" id="fabAddBtn" title="إضافة عداد جديد">+</button>
+
+  <!-- CREATE / EDIT MODAL -->
+  <div class="modal-overlay" id="modalOverlay">
+    <div class="modal-card">
+      <div class="modal-header">
+        <button class="modal-header-btn" id="modalCancelBtn">إلغاء</button>
+        <span class="modal-title" id="modalTitle">عداد جديد</span>
+        <button class="modal-header-btn save-btn" id="modalSaveBtn">حفظ</button>
+      </div>
+
+      <div class="modal-body">
+        <div class="name-input-group">
+          <div class="name-input-icon">
+            <div class="mini-h"></div>
+          </div>
+          <input type="text" id="inputTitle" class="name-input" placeholder="اسم العداد (مثال: ميلاد، تخرج...)" />
+        </div>
+
+        <div>
+          <div class="section-label">تحديد التاريخ</div>
+          
+          <div class="date-tabs">
+            <div class="date-tab active" id="tabCalendar">📅 التقويم التفاعلي</div>
+            <div class="date-tab" id="tabManual">✍️ إدخال يدوي سريع</div>
+          </div>
+
+          <div class="calendar-container" id="calendarSection">
+            <div class="calendar-header">
+              <div class="cal-title-jump" id="calTitleJump" title="اختيار الشهر والسنة مباشرة">
+                <span id="calMonthYearLabel">September 2026</span>
+                <span style="font-size: 11px; opacity: 0.7;">▾</span>
+              </div>
+              <div class="cal-nav-buttons">
+                <button class="cal-nav-btn" id="calPrevDecade" title="10 سنوات للوراء">«</button>
+                <button class="cal-nav-btn" id="calPrevMonth" title="الشهر السابق">‹</button>
+                <button class="cal-nav-btn" id="calNextMonth" title="الشهر التالي">›</button>
+                <button class="cal-nav-btn" id="calNextDecade" title="10 سنوات للأمام">»</button>
+              </div>
+            </div>
+
+            <div class="cal-quick-jumper" id="calQuickJumper">
+              <select id="jumpMonthSelect"></select>
+              <input type="number" id="jumpYearInput" min="1900" max="2150" placeholder="السنة (مثال 1984)" />
+            </div>
+
+            <div class="calendar-weekdays">
+              <div>MON</div><div>TUE</div><div>WED</div><div>THU</div><div>FRI</div><div>SAT</div><div>SUN</div>
+            </div>
+            <div class="calendar-days-grid" id="calendarDaysGrid"></div>
+          </div>
+
+          <div class="manual-date-box" id="manualSection" style="display: none;">
+            <div class="manual-inputs-grid">
+              <div class="manual-col">
+                <label>اليوم (1 - 31)</label>
+                <input type="number" id="manualDayInput" min="1" max="31" placeholder="اليوم" />
+              </div>
+              <div class="manual-col">
+                <label>الشهر</label>
+                <select id="manualMonthSelect"></select>
+              </div>
+              <div class="manual-col">
+                <label>السنة</label>
+                <input type="number" id="manualYearInput" min="1900" max="2150" placeholder="مثال 1959" />
+              </div>
+            </div>
+
+            <div class="native-date-wrapper">
+              <span>أو حدد عبر تقويم النظام:</span>
+              <input type="date" id="nativeDateInput" />
+            </div>
+          </div>
+        </div>
+
+        <div class="toggle-row">
+          <div class="toggle-info">
+            <span class="toggle-title">حساب أيام العمل فقط</span>
+            <span class="toggle-subtitle">استثناء عطلة نهاية الأسبوع (السبت والأحد)</span>
+          </div>
+          <label class="ios-switch">
+            <input type="checkbox" id="toggleWeekdays" />
+            <span class="slider"></span>
+          </label>
+        </div>
+
+        <div class="toggle-row">
+          <div class="toggle-info">
+            <span class="toggle-title">طوال اليوم</span>
+            <span class="toggle-subtitle">حساب كامل اليوم دون تحديد ساعة</span>
+          </div>
+          <label class="ios-switch">
+            <input type="checkbox" id="toggleAllDay" checked />
+            <span class="slider"></span>
+          </label>
+        </div>
+
+        <div id="timePickerContainer" style="display: none; padding-bottom: 6px;">
+          <div class="section-label">تحديد الوقت</div>
+          <input type="time" id="inputTime" style="width: 100%; background: var(--bg-input); border: 1px solid var(--border-color); color: var(--text-main); padding: 10px; border-radius: 12px; font-size: 16px; outline: none;" value="12:00" />
+        </div>
+
+        <div>
+          <div class="section-label">اختيار اللون</div>
+          <div class="color-picker-row" id="colorPickerRow"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- DETAIL VIEW OVERLAY -->
+  <div class="detail-overlay" id="detailOverlay">
+    <div class="detail-top-nav">
+      <button class="detail-btn-icon" id="detailBackBtn">‹</button>
+      <div style="display: flex; gap: 8px;">
+        <button class="detail-btn-icon" id="detailEditBtn" title="تعديل">✎</button>
+        <button class="detail-btn-icon" id="detailDeleteBtn" title="حذف" style="color: var(--danger-red);">🗑</button>
+      </div>
+    </div>
+
+    <div class="detail-center-content">
+      <div class="detail-paper-cal">
+        <div class="detail-cal-h" id="detailCalMonthName">NOV</div>
+        <div class="detail-cal-b"></div>
+        <div class="detail-cal-curl"></div>
+      </div>
+
+      <h2 class="detail-title" id="detailTitleText">متبقي</h2>
+      <div class="detail-date-str" id="detailFullDateStr">Friday, 12 November 2027</div>
+
+      <div class="detail-big-block" id="detailBlockYMD" title="انقر للتبديل">
+        <div class="detail-unit-col">
+          <span class="detail-unit-num" id="unitYears">0</span>
+          <span class="detail-unit-label">year</span>
+        </div>
+        <div class="detail-unit-col">
+          <span class="detail-unit-num" id="unitMonths">0</span>
+          <span class="detail-unit-label">month</span>
+        </div>
+        <div class="detail-unit-col">
+          <span class="detail-unit-num" id="unitDays">0</span>
+          <span class="detail-unit-label">days</span>
+        </div>
+      </div>
+
+      <div class="detail-big-block" id="detailBlockTotalDays" style="display: none; justify-content: center; gap: 12px;">
+        <span class="detail-unit-num" id="unitTotalDays" style="font-size: 50px;">0</span>
+        <span class="detail-unit-label" id="unitTotalDaysLabel" style="font-size: 18px; align-self: flex-end; margin-bottom: 8px;">days</span>
+      </div>
+
+      <div style="display: flex; flex-direction: column; align-items: center; margin-top: 10px;">
+        <div class="detail-time-digits" id="detailTimeHMS">00 : 00 : 00</div>
+        <div class="detail-time-sub">
+          <span>hours</span>
+          <span>min</span>
+          <span>sec</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="detail-bottom-nav">
+      <div class="detail-nav-pill" id="pillPrev" style="visibility: hidden;">
+        <span>‹</span>
+        <span id="pillPrevText" style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">السابق</span>
+      </div>
+      <div class="detail-nav-pill" id="pillNext" style="visibility: hidden; margin-right: auto;">
+        <span id="pillNextText" style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">التالي</span>
+        <span>›</span>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const PALETTES = [
+      { id: 'olive', bg: 'linear-gradient(135deg, #44592a, #354720)', color: '#44592a' },
+      { id: 'navy', bg: 'linear-gradient(135deg, #1b164a, #110e30)', color: '#1b164a' },
+      { id: 'cyan', bg: 'linear-gradient(135deg, #208779, #17655a)', color: '#208779' },
+      { id: 'darkolive', bg: 'linear-gradient(135deg, #2e3d23, #1f2a17)', color: '#2e3d23' },
+      { id: 'purple', bg: 'linear-gradient(135deg, #743e8d, #582e6c)', color: '#743e8d' },
+      { id: 'ocean', bg: 'linear-gradient(135deg, #27679a, #1b4b72)', color: '#27679a' },
+      { id: 'amber', bg: 'linear-gradient(135deg, #a87e28, #86641e)', color: '#a87e28' },
+      { id: 'rose', bg: 'linear-gradient(135deg, #9a2b4b, #751f38)', color: '#9a2b4b' }
+    ];
+
+    const MONTH_NAMES_EN = [
+      "January", "February", "March", "April", "May", "June",
+      "July", "August", "September", "October", "November", "December"
+    ];
+    const MONTH_NAMES_AR = [
+      "يناير", "فبراير", "مارس", "أبريل", "مايو", "يونيو",
+      "يوليو", "أغسطس", "سبتمبر", "أكتوبر", "نوفمبر", "ديسمبر"
+    ];
+
+    let countdowns = [];
+    let isEditMode = false;
+    let activeDetailIndex = -1;
+    let editingId = null;
+    let showTotalDaysDetail = false;
+    let currentSortMode = 'nearest'; // 'nearest' | 'farthest' | 'created' | 'alpha'
+
+    let pickerYear = new Date().getFullYear();
+    let pickerMonth = new Date().getMonth();
+    let selectedDate = new Date();
+    let selectedColorIndex = 0;
+
+    function init() {
+      const savedTheme = localStorage.getItem('countdown_theme') || 'dark';
+      applyTheme(savedTheme);
+
+      currentSortMode = localStorage.getItem('countdown_sort') || 'nearest';
+
+      const savedData = localStorage.getItem('countdowns_data_v2');
+      if (savedData) {
+        try {
+          countdowns = JSON.parse(savedData);
+        } catch(e) {
+          countdowns = [];
+        }
+      } else {
+        countdowns = [];
+      }
+
+      buildColorPicker();
+      populateMonthDropdowns();
+      renderCalendar();
+      syncManualInputsFromSelected();
+      updateSortMenuUI();
+      applySortAndRender();
+
+      setInterval(updateLiveTicks, 1000);
+      setupEventListeners();
+    }
+
+    function applyTheme(theme) {
+      document.documentElement.setAttribute('data-theme', theme);
+      localStorage.setItem('countdown_theme', theme);
+      const icon = document.getElementById('themeIcon');
+      const text = document.getElementById('themeText');
+      if (theme === 'light') {
+        icon.textContent = '🌙';
+        text.textContent = 'الوضع الداكن';
+      } else {
+        icon.textContent = '☀️';
+        text.textContent = 'الوضع الفاتح';
+      }
+    }
+
+    function getCalendarDaysDiff(targetDate, baseDate = new Date()) {
+      const utcBase = Date.UTC(baseDate.getFullYear(), baseDate.getMonth(), baseDate.getDate());
+      const utcTarget = Date.UTC(targetDate.getFullYear(), targetDate.getMonth(), targetDate.getDate());
+      return Math.round((utcTarget - utcBase) / (1000 * 60 * 60 * 24));
+    }
+
+    function getWeekdaysDiff(targetDate, baseDate = new Date()) {
+      let d1 = new Date(baseDate.getFullYear(), baseDate.getMonth(), baseDate.getDate());
+      let d2 = new Date(targetDate.getFullYear(), targetDate.getMonth(), targetDate.getDate());
+      let sign = 1;
+      if (d1 > d2) {
+        [d1, d2] = [d2, d1];
+        sign = -1;
+      }
+      let count = 0;
+      let cur = new Date(d1);
+      while (cur < d2) {
+        cur.setDate(cur.getDate() + 1);
+        const dayOfWeek = cur.getDay();
+        if (dayOfWeek !== 0 && dayOfWeek !== 6) count++;
+      }
+      return count * sign;
+    }
+
+    function getDetailedBreakdown(targetDate, baseDate = new Date()) {
+      const isPast = targetDate < baseDate;
+      let start = isPast ? new Date(targetDate) : new Date(baseDate);
+      let end = isPast ? new Date(baseDate) : new Date(targetDate);
+
+      let years = end.getFullYear() - start.getFullYear();
+      let months = end.getMonth() - start.getMonth();
+      let days = end.getDate() - start.getDate();
+      let hours = end.getHours() - start.getHours();
+      let minutes = end.getMinutes() - start.getMinutes();
+      let seconds = end.getSeconds() - start.getSeconds();
+
+      if (seconds < 0) {
+        seconds += 60;
+        minutes--;
+      }
+      if (minutes < 0) {
+        minutes += 60;
+        hours--;
+      }
+      if (hours < 0) {
+        hours += 24;
+        days--;
+      }
+      if (days < 0) {
+        const prevMonthDate = new Date(end.getFullYear(), end.getMonth(), 0);
+        days += prevMonthDate.getDate();
+        months--;
+      }
+      if (months < 0) {
+        months += 12;
+        years--;
+      }
+
+      return {
+        isPast,
+        years: Math.max(0, years),
+        months: Math.max(0, months),
+        days: Math.max(0, days),
+        hours: Math.max(0, hours),
+        minutes: Math.max(0, minutes),
+        seconds: Math.max(0, seconds)
+      };
+    }
+
+    function formatShortDate(d) {
+      const days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+      const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+      return `${days[d.getDay()]}, ${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear()}`;
+    }
+
+    function formatFullDateString(d) {
+      const days = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+      return `${days[d.getDay()]}, ${d.getDate()} ${MONTH_NAMES_EN[d.getMonth()]} ${d.getFullYear()}`;
+    }
+
+    /* Sort Operations */
+    function applySortAndRender() {
+      const now = new Date().getTime();
+      if (currentSortMode === 'nearest') {
+        countdowns.sort((a, b) => {
+          const diffA = Math.abs(new Date(a.targetDate).getTime() - now);
+          const diffB = Math.abs(new Date(b.targetDate).getTime() - now);
+          return diffA - diffB;
+        });
+      } else if (currentSortMode === 'farthest') {
+        countdowns.sort((a, b) => {
+          const diffA = Math.abs(new Date(a.targetDate).getTime() - now);
+          const diffB = Math.abs(new Date(b.targetDate).getTime() - now);
+          return diffB - diffA;
+        });
+      } else if (currentSortMode === 'created') {
+        countdowns.sort((a, b) => {
+          const timeA = parseInt(a.id.replace('cd_', '')) || 0;
+          const timeB = parseInt(b.id.replace('cd_', '')) || 0;
+          return timeB - timeA;
+        });
+      } else if (currentSortMode === 'alpha') {
+        countdowns.sort((a, b) => a.title.localeCompare(b.title, 'ar'));
+      }
+      renderMainList();
+    }
+
+    function updateSortMenuUI() {
+      const items = document.querySelectorAll('.sort-menu-item');
+      items.forEach(el => {
+        const mode = el.getAttribute('data-sort');
+        const checkSpan = el.querySelector('.sort-check');
+        if (mode === currentSortMode) {
+          checkSpan.textContent = '✓';
+          el.classList.add('active');
+        } else {
+          checkSpan.textContent = '';
+          el.classList.remove('active');
+        }
+      });
+    }
+
+    function renderMainList() {
+      const searchVal = (document.getElementById('searchInput').value || '').trim().toLowerCase();
+      const filtered = countdowns.filter(item => item.title.toLowerCase().includes(searchVal));
+
+      const emptyState = document.getElementById('emptyState');
+      const cardsList = document.getElementById('cardsList');
+
+      if (filtered.length === 0) {
+        emptyState.style.display = 'flex';
+        cardsList.style.display = 'none';
+        return;
+      }
+
+      emptyState.style.display = 'none';
+      cardsList.style.display = 'flex';
+      cardsList.className = 'cards-list' + (isEditMode ? ' edit-mode' : '');
+      cardsList.innerHTML = '';
+
+      const now = new Date();
+
+      filtered.forEach((item, index) => {
+        const target = new Date(item.targetDate);
+        const palette = PALETTES[item.paletteIndex || 0];
+
+        let daysDiff;
+        if (item.countOnlyWeekdays) {
+          daysDiff = getWeekdaysDiff(target, now);
+        } else {
+          daysDiff = getCalendarDaysDiff(target, now);
+        }
+
+        let daysNumberText = Math.abs(daysDiff);
+        let daysLabelText = daysDiff < 0 ? 'days ago' : 'days left';
+        if (daysDiff === 0) daysLabelText = 'today';
+
+        const card = document.createElement('div');
+        card.className = 'countdown-card';
+        card.style.background = palette.bg;
+        card.onclick = (e) => {
+          if (e.target.closest('.card-delete-btn')) return;
+          openDetail(index);
+        };
+
+        card.innerHTML = `
+          <div class="card-left">
+            <button class="card-delete-btn" onclick="deleteCountdown(event, '${item.id}')" title="حذف">✕</button>
+            <div class="paper-cal-icon">
+              <div class="paper-cal-header">
+                <div class="spiral-ring"></div>
+                <div class="spiral-ring"></div>
+                <div class="spiral-ring"></div>
+              </div>
+              <div class="paper-cal-body">
+                <div class="paper-cal-curl"></div>
+              </div>
+            </div>
+            <div class="card-info">
+              <span class="card-title">${escapeHtml(item.title)}</span>
+              <div class="card-meta">
+                <span class="star-icon">📌</span>
+                <span>${formatShortDate(target)}</span>
+              </div>
+            </div>
+          </div>
+          <div class="card-right">
+            <div class="card-days-number">${daysNumberText}</div>
+            <div class="card-days-label">${daysLabelText}</div>
+          </div>
+        `;
+        cardsList.appendChild(card);
+      });
+    }
+
+    function escapeHtml(str) {
+      return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    }
+
+    function openDetail(index) {
+      activeDetailIndex = index;
+      const item = countdowns[index];
+      if (!item) return;
+
+      const overlay = document.getElementById('detailOverlay');
+      const palette = PALETTES[item.paletteIndex || 0];
+      overlay.style.background = palette.bg;
+
+      document.getElementById('detailTitleText').textContent = item.title;
+      const target = new Date(item.targetDate);
+      document.getElementById('detailFullDateStr').textContent = formatFullDateString(target);
+      document.getElementById('detailCalMonthName').textContent = MONTH_NAMES_EN[target.getMonth()].substring(0, 3).toUpperCase();
+
+      const pillPrev = document.getElementById('pillPrev');
+      const pillNext = document.getElementById('pillNext');
+      if (index > 0) {
+        pillPrev.style.visibility = 'visible';
+        document.getElementById('pillPrevText').textContent = countdowns[index - 1].title;
+      } else {
+        pillPrev.style.visibility = 'hidden';
+      }
+
+      if (index < countdowns.length - 1) {
+        pillNext.style.visibility = 'visible';
+        document.getElementById('pillNextText').textContent = countdowns[index + 1].title;
+      } else {
+        pillNext.style.visibility = 'hidden';
+      }
+
+      updateDetailNumbers();
+      overlay.classList.add('open');
+    }
+
+    function updateDetailNumbers() {
+      if (activeDetailIndex < 0 || activeDetailIndex >= countdowns.length) return;
+      const item = countdowns[activeDetailIndex];
+      const target = new Date(item.targetDate);
+      const now = new Date();
+
+      const bd = getDetailedBreakdown(target, now);
+
+      document.getElementById('unitYears').textContent = bd.years;
+      document.getElementById('unitMonths').textContent = bd.months;
+      document.getElementById('unitDays').textContent = bd.days;
+
+      let totalDays;
+      if (item.countOnlyWeekdays) {
+        totalDays = getWeekdaysDiff(target, now);
+      } else {
+        totalDays = getCalendarDaysDiff(target, now);
+      }
+      document.getElementById('unitTotalDays').textContent = Math.abs(totalDays);
+      document.getElementById('unitTotalDaysLabel').textContent = totalDays < 0 ? 'days ago' : 'days left';
+
+      const hh = String(bd.hours).padStart(2, '0');
+      const mm = String(bd.minutes).padStart(2, '0');
+      const ss = String(bd.seconds).padStart(2, '0');
+      document.getElementById('detailTimeHMS').textContent = `${hh} : ${mm} : ${ss}`;
+    }
+
+    function closeDetail() {
+      document.getElementById('detailOverlay').classList.remove('open');
+      activeDetailIndex = -1;
+    }
+
+    function populateMonthDropdowns() {
+      const quickSelect = document.getElementById('jumpMonthSelect');
+      const manualSelect = document.getElementById('manualMonthSelect');
+      quickSelect.innerHTML = '';
+      manualSelect.innerHTML = '';
+
+      MONTH_NAMES_EN.forEach((m, idx) => {
+        const opt1 = document.createElement('option');
+        opt1.value = idx;
+        opt1.textContent = `${idx + 1} - ${m} (${MONTH_NAMES_AR[idx]})`;
+        quickSelect.appendChild(opt1);
+
+        const opt2 = document.createElement('option');
+        opt2.value = idx;
+        opt2.textContent = `${idx + 1} - ${MONTH_NAMES_AR[idx]} (${m})`;
+        manualSelect.appendChild(opt2);
+      });
+    }
+
+    function renderCalendar() {
+      document.getElementById('calMonthYearLabel').textContent = `${MONTH_NAMES_EN[pickerMonth]} ${pickerYear}`;
+      document.getElementById('jumpMonthSelect').value = pickerMonth;
+      document.getElementById('jumpYearInput').value = pickerYear;
+
+      const grid = document.getElementById('calendarDaysGrid');
+      grid.innerHTML = '';
+
+      const firstDay = new Date(pickerYear, pickerMonth, 1);
+      let startDay = firstDay.getDay() - 1;
+      if (startDay === -1) startDay = 6;
+
+      const daysInMonth = new Date(pickerYear, pickerMonth + 1, 0).getDate();
+
+      for (let i = 0; i < startDay; i++) {
+        const cell = document.createElement('div');
+        cell.className = 'cal-day-cell empty';
+        grid.appendChild(cell);
+      }
+
+      const today = new Date();
+
+      for (let day = 1; day <= daysInMonth; day++) {
+        const cell = document.createElement('div');
+        cell.className = 'cal-day-cell';
+        cell.textContent = day;
+
+        const isSel = (
+          selectedDate.getFullYear() === pickerYear &&
+          selectedDate.getMonth() === pickerMonth &&
+          selectedDate.getDate() === day
+        );
+        if (isSel) cell.classList.add('selected');
+
+        const isToday = (
+          today.getFullYear() === pickerYear &&
+          today.getMonth() === pickerMonth &&
+          today.getDate() === day
+        );
+        if (isToday) cell.classList.add('today-circle');
+
+        cell.onclick = () => {
+          selectedDate = new Date(pickerYear, pickerMonth, day);
+          syncManualInputsFromSelected();
+          renderCalendar();
+        };
+
+        grid.appendChild(cell);
+      }
+    }
+
+    function syncManualInputsFromSelected() {
+      document.getElementById('manualDayInput').value = selectedDate.getDate();
+      document.getElementById('manualMonthSelect').value = selectedDate.getMonth();
+      document.getElementById('manualYearInput').value = selectedDate.getFullYear();
+
+      const yyyy = selectedDate.getFullYear();
+      const mm = String(selectedDate.getMonth() + 1).padStart(2, '0');
+      const dd = String(selectedDate.getDate()).padStart(2, '0');
+      document.getElementById('nativeDateInput').value = `${yyyy}-${mm}-${dd}`;
+    }
+
+    function applyManualInputChanges() {
+      const d = parseInt(document.getElementById('manualDayInput').value) || 1;
+      const m = parseInt(document.getElementById('manualMonthSelect').value) || 0;
+      const y = parseInt(document.getElementById('manualYearInput').value) || new Date().getFullYear();
+
+      const maxDays = new Date(y, m + 1, 0).getDate();
+      const safeD = Math.min(Math.max(1, d), maxDays);
+
+      selectedDate = new Date(y, m, safeD);
+      pickerYear = y;
+      pickerMonth = m;
+      renderCalendar();
+      syncManualInputsFromSelected();
+    }
+
+    function buildColorPicker() {
+      const container = document.getElementById('colorPickerRow');
+      container.innerHTML = '';
+      PALETTES.forEach((p, idx) => {
+        const dot = document.createElement('div');
+        dot.className = 'color-dot' + (idx === selectedColorIndex ? ' selected' : '');
+        dot.style.background = p.color;
+        dot.onclick = () => {
+          selectedColorIndex = idx;
+          buildColorPicker();
+        };
+        container.appendChild(dot);
+      });
+    }
+
+    function openModal(idToEdit = null) {
+      editingId = idToEdit;
+      const modal = document.getElementById('modalOverlay');
+      const titleInput = document.getElementById('inputTitle');
+      const weekdaysCheckbox = document.getElementById('toggleWeekdays');
+      const allDayCheckbox = document.getElementById('toggleAllDay');
+      const timeContainer = document.getElementById('timePickerContainer');
+      const timeInput = document.getElementById('inputTime');
+
+      if (idToEdit) {
+        const item = countdowns.find(c => c.id === idToEdit);
+        if (!item) return;
+        document.getElementById('modalTitle').textContent = 'تعديل العداد';
+        titleInput.value = item.title;
+        selectedDate = new Date(item.targetDate);
+        pickerYear = selectedDate.getFullYear();
+        pickerMonth = selectedDate.getMonth();
+        weekdaysCheckbox.checked = !!item.countOnlyWeekdays;
+        allDayCheckbox.checked = item.isAllDay !== false;
+        timeContainer.style.display = allDayCheckbox.checked ? 'none' : 'block';
+        if (item.time) timeInput.value = item.time;
+        selectedColorIndex = item.paletteIndex || 0;
+      } else {
+        document.getElementById('modalTitle').textContent = 'عداد جديد';
+        titleInput.value = '';
+        selectedDate = new Date();
+        pickerYear = selectedDate.getFullYear();
+        pickerMonth = selectedDate.getMonth();
+        weekdaysCheckbox.checked = false;
+        allDayCheckbox.checked = true;
+        timeContainer.style.display = 'none';
+        selectedColorIndex = 0;
+      }
+
+      document.getElementById('tabCalendar').click();
+      document.getElementById('calQuickJumper').classList.remove('show');
+
+      buildColorPicker();
+      syncManualInputsFromSelected();
+      renderCalendar();
+      modal.classList.add('open');
+      titleInput.focus();
+    }
+
+    function closeModal() {
+      document.getElementById('modalOverlay').classList.remove('open');
+      editingId = null;
+    }
+
+    function saveCountdown() {
+      const titleInput = document.getElementById('inputTitle');
+      const title = titleInput.value.trim() || 'بدون عنوان';
+      const countOnlyWeekdays = document.getElementById('toggleWeekdays').checked;
+      const isAllDay = document.getElementById('toggleAllDay').checked;
+      const timeVal = document.getElementById('inputTime').value;
+
+      let finalTarget = new Date(selectedDate.getFullYear(), selectedDate.getMonth(), selectedDate.getDate());
+      if (!isAllDay && timeVal) {
+        const [hh, mm] = timeVal.split(':').map(Number);
+        finalTarget.setHours(hh || 0, mm || 0, 0, 0);
+      } else {
+        finalTarget.setHours(0, 0, 0, 0);
+      }
+
+      if (editingId) {
+        const idx = countdowns.findIndex(c => c.id === editingId);
+        if (idx !== -1) {
+          countdowns[idx] = {
+            ...countdowns[idx],
+            title,
+            targetDate: finalTarget.toISOString(),
+            countOnlyWeekdays,
+            isAllDay,
+            time: timeVal,
+            paletteIndex: selectedColorIndex
+          };
+        }
+      } else {
+        const newItem = {
+          id: 'cd_' + Date.now(),
+          title,
+          targetDate: finalTarget.toISOString(),
+          countOnlyWeekdays,
+          isAllDay,
+          time: timeVal,
+          paletteIndex: selectedColorIndex
+        };
+        countdowns.unshift(newItem);
+      }
+
+      saveToStorage();
+      closeModal();
+      applySortAndRender();
+
+      if (activeDetailIndex !== -1) {
+        openDetail(activeDetailIndex);
+      }
+    }
+
+    function deleteCountdown(e, id) {
+      e.stopPropagation();
+      if (!confirm('هل تريد بالتأكيد حذف هذا العداد؟')) return;
+      countdowns = countdowns.filter(c => c.id !== id);
+      saveToStorage();
+      renderMainList();
+    }
+
+    function saveToStorage() {
+      localStorage.setItem('countdowns_data_v2', JSON.stringify(countdowns));
+    }
+
+    function setupEventListeners() {
+      document.getElementById('themeToggleBtn').onclick = () => {
+        const current = document.documentElement.getAttribute('data-theme') || 'dark';
+        applyTheme(current === 'dark' ? 'light' : 'dark');
+      };
+
+      const editBtn = document.getElementById('editToggleBtn');
+      editBtn.onclick = () => {
+        isEditMode = !isEditMode;
+        editBtn.textContent = isEditMode ? 'تم' : 'تعديل';
+        renderMainList();
+      };
+
+      // Sort Menu Toggle
+      const sortBtn = document.getElementById('sortMenuBtn');
+      const sortPopover = document.getElementById('sortMenuPopover');
+
+      sortBtn.onclick = (e) => {
+        e.stopPropagation();
+        sortPopover.classList.toggle('open');
+      };
+
+      // Select Sort Criteria
+      document.querySelectorAll('.sort-menu-item').forEach(item => {
+        item.onclick = (e) => {
+          e.stopPropagation();
+          currentSortMode = item.getAttribute('data-sort');
+          localStorage.setItem('countdown_sort', currentSortMode);
+          updateSortMenuUI();
+          applySortAndRender();
+          sortPopover.classList.remove('open');
+        };
+      });
+
+      // Close Popover on Outside Click
+      document.addEventListener('click', (e) => {
+        if (!sortPopover.contains(e.target) && e.target !== sortBtn) {
+          sortPopover.classList.remove('open');
+        }
+      });
+
+      document.getElementById('headerAddBtn').onclick = () => openModal();
+      document.getElementById('fabAddBtn').onclick = () => openModal();
+      document.getElementById('emptyCreateBtn').onclick = () => openModal();
+      document.getElementById('emptyAddCircleBtn').onclick = () => openModal();
+
+      document.getElementById('searchInput').oninput = () => renderMainList();
+
+      document.getElementById('modalCancelBtn').onclick = closeModal;
+      document.getElementById('modalSaveBtn').onclick = saveCountdown;
+
+      const tabCal = document.getElementById('tabCalendar');
+      const tabMan = document.getElementById('tabManual');
+      const calSec = document.getElementById('calendarSection');
+      const manSec = document.getElementById('manualSection');
+
+      tabCal.onclick = () => {
+        tabCal.classList.add('active');
+        tabMan.classList.remove('active');
+        calSec.style.display = 'block';
+        manSec.style.display = 'none';
+      };
+      tabMan.onclick = () => {
+        tabMan.classList.add('active');
+        tabCal.classList.remove('active');
+        manSec.style.display = 'flex';
+        calSec.style.display = 'none';
+        syncManualInputsFromSelected();
+      };
+
+      document.getElementById('manualDayInput').onchange = applyManualInputChanges;
+      document.getElementById('manualMonthSelect').onchange = applyManualInputChanges;
+      document.getElementById('manualYearInput').onchange = applyManualInputChanges;
+
+      document.getElementById('nativeDateInput').onchange = (e) => {
+        if (!e.target.value) return;
+        const [y, m, d] = e.target.value.split('-').map(Number);
+        selectedDate = new Date(y, m - 1, d);
+        pickerYear = y;
+        pickerMonth = m - 1;
+        renderCalendar();
+        syncManualInputsFromSelected();
+      };
+
+      document.getElementById('calPrevMonth').onclick = () => {
+        pickerMonth--;
+        if (pickerMonth < 0) {
+          pickerMonth = 11;
+          pickerYear--;
+        }
+        renderCalendar();
+      };
+      document.getElementById('calNextMonth').onclick = () => {
+        pickerMonth++;
+        if (pickerMonth > 11) {
+          pickerMonth = 0;
+          pickerYear++;
+        }
+        renderCalendar();
+      };
+
+      document.getElementById('calPrevDecade').onclick = () => {
+        pickerYear -= 10;
+        renderCalendar();
+      };
+      document.getElementById('calNextDecade').onclick = () => {
+        pickerYear += 10;
+        renderCalendar();
+      };
+
+      document.getElementById('calTitleJump').onclick = () => {
+        document.getElementById('calQuickJumper').classList.toggle('show');
+      };
+      document.getElementById('jumpMonthSelect').onchange = (e) => {
+        pickerMonth = parseInt(e.target.value);
+        renderCalendar();
+      };
+      document.getElementById('jumpYearInput').onchange = (e) => {
+        const val = parseInt(e.target.value);
+        if (val && val >= 1900 && val <= 2150) {
+          pickerYear = val;
+          renderCalendar();
+        }
+      };
+
+      document.getElementById('toggleAllDay').onchange = (e) => {
+        document.getElementById('timePickerContainer').style.display = e.target.checked ? 'none' : 'block';
+      };
+
+      document.getElementById('detailBackBtn').onclick = closeDetail;
+      document.getElementById('detailEditBtn').onclick = () => {
+        if (activeDetailIndex !== -1) {
+          const item = countdowns[activeDetailIndex];
+          openModal(item.id);
+        }
+      };
+      document.getElementById('detailDeleteBtn').onclick = () => {
+        if (activeDetailIndex !== -1) {
+          if (!confirm('هل تريد حذف هذا العداد؟')) return;
+          const id = countdowns[activeDetailIndex].id;
+          countdowns = countdowns.filter(c => c.id !== id);
+          saveToStorage();
+          closeDetail();
+          renderMainList();
+        }
+      };
+
+      const blockYMD = document.getElementById('detailBlockYMD');
+      const blockTotal = document.getElementById('detailBlockTotalDays');
+      const toggleView = () => {
+        showTotalDaysDetail = !showTotalDaysDetail;
+        blockYMD.style.display = showTotalDaysDetail ? 'none' : 'flex';
+        blockTotal.style.display = showTotalDaysDetail ? 'flex' : 'none';
+      };
+      blockYMD.onclick = toggleView;
+      blockTotal.onclick = toggleView;
+
+      document.getElementById('pillPrev').onclick = () => {
+        if (activeDetailIndex > 0) openDetail(activeDetailIndex - 1);
+      };
+      document.getElementById('pillNext').onclick = () => {
+        if (activeDetailIndex < countdowns.length - 1) openDetail(activeDetailIndex + 1);
+      };
+    }
+
+    function updateLiveTicks() {
+      if (activeDetailIndex !== -1) {
+        updateDetailNumbers();
+      }
+    }
+
+    window.addEventListener('DOMContentLoaded', init);
+  </script>
+</body>
+</html>
