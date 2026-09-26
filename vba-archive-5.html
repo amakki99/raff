@@ -1,0 +1,508 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>أرشيف أكواد VBA</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;900&family=Cascadia+Code&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#12141c; --panel:#191c26; --card:#1e2230; --card-border:#2b3040;
+    --ink:#ffffff; --muted:#a9adc0; --gold:#c9a15a; --gold-soft:#c9a15a22;
+    --teal:#5fb8a8; --danger:#d9756a; --radius:14px;
+    --mono:'Cascadia Code','Consolas',monospace;
+  }
+  [data-theme="light"]{
+    --bg:#f6f3ec; --panel:#fffdf8; --card:#ffffff; --card-border:#e5decf;
+    --ink:#241f16; --muted:#7a7261; --gold:#a97b2f; --gold-soft:#a97b2f18;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  html,body{height:100%;}
+  body{
+    font-family:'Tajawal',sans-serif; background:var(--bg); color:var(--ink); font-size:16px;
+    display:flex; min-height:100vh; transition:background .25s,color .25s;
+  }
+  ::selection{background:var(--gold-soft);}
+  /* Sidebar */
+  aside{
+    width:250px; flex:none; background:var(--panel); border-left:1px solid var(--card-border);
+    padding:26px 20px; display:flex; flex-direction:column; gap:24px;
+    transition:width .2s,max-height .2s,padding .2s,opacity .15s,border-color .2s; overflow-x:hidden; overflow-y:auto;
+  }
+  aside.collapsed{width:0; max-height:0; padding:0; opacity:0; pointer-events:none; border:none;}
+  #showSidebarBtn{
+    position:fixed; top:22px; right:22px; z-index:40; width:44px; height:44px; border-radius:12px;
+    background:var(--card); border:1px solid var(--card-border); color:var(--gold); font-size:18px;
+    cursor:pointer; display:none; align-items:center; justify-content:center;
+  }
+  #showSidebarBtn.show{display:flex;}
+  .sidebar-toggle{
+    align-self:flex-start; background:none; border:1px solid var(--card-border); color:var(--muted);
+    border-radius:10px; padding:8px 12px; cursor:pointer; font-family:inherit; font-size:15px;
+  }
+  .sidebar-toggle:hover{border-color:var(--gold); color:var(--gold);}
+  .brand{display:flex; align-items:center; gap:10px;}
+  .seal{
+    width:38px; height:38px; border-radius:50%; border:2px solid var(--gold);
+    display:flex; align-items:center; justify-content:center; color:var(--gold);
+    font-weight:900; font-size:15px; flex:none;
+  }
+  .brand h1{font-size:22px; font-weight:900;}
+  .brand span{display:block; font-size:14px; color:var(--muted); font-weight:400;}
+  nav{display:flex; flex-direction:column; gap:4px;}
+  nav button{
+    text-align:right; background:none; border:none; color:var(--muted); font-family:inherit;
+    padding:11px 12px; border-radius:10px; cursor:pointer; font-size:17.5px; display:flex;
+    justify-content:space-between; align-items:center; transition:background .15s,color .15s;
+  }
+  nav button:hover{background:var(--gold-soft); color:var(--ink);}
+  nav button.active{background:var(--gold-soft); color:var(--gold); font-weight:700;}
+  nav button em{
+    font-style:normal; background:var(--card); border:1px solid var(--card-border);
+    border-radius:999px; padding:2px 9px; font-size:13.5px; color:var(--muted);
+  }
+  .side-actions{margin-top:auto; display:flex; flex-direction:column; gap:8px;}
+  .ghost-btn{
+    background:none; border:1px dashed var(--card-border); color:var(--muted);
+    padding:10px; border-radius:10px; cursor:pointer; font-family:inherit; font-size:15px;
+  }
+  .ghost-btn:hover{border-color:var(--gold); color:var(--gold);}
+  /* Main */
+  main{flex:1; padding:28px 34px; overflow-y:auto;}
+  header.top{display:flex; gap:14px; align-items:center; margin-bottom:22px; flex-wrap:wrap;}
+  .search-wrap{
+    flex:1; min-width:240px; position:relative; background:var(--card); border:1px solid var(--card-border);
+    border-radius:12px; display:flex; align-items:center; padding:0 14px; height:46px;
+  }
+  .search-wrap input{
+    flex:1; background:none; border:none; outline:none; color:var(--ink); font-family:inherit;
+    font-size:16px; padding:0 8px; height:100%;
+  }
+  .search-wrap input::placeholder{color:var(--muted);}
+  .icon-btn, .primary-btn{
+    height:46px; border-radius:12px; border:none; cursor:pointer; font-family:inherit;
+    font-size:15.5px; display:flex; align-items:center; gap:6px; padding:0 16px;
+  }
+  .icon-btn{background:var(--card); color:var(--ink); border:1px solid var(--card-border);}
+  .icon-btn:hover{border-color:var(--gold);}
+  .primary-btn{background:var(--gold); color:#1a1608; font-weight:700;}
+  .primary-btn:hover{filter:brightness(1.08);}
+  .count-line{color:var(--muted); font-size:14.5px; margin-bottom:16px;}
+  .grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(300px,1fr)); gap:16px;}
+  .card{
+    background:var(--card); border:1px solid var(--card-border); border-radius:var(--radius);
+    padding:18px; display:flex; flex-direction:column; gap:10px; position:relative;
+  }
+  .card-top{display:flex; justify-content:space-between; align-items:flex-start; gap:10px;}
+  .card-num{color:var(--gold); font-family:var(--mono); font-size:13.5px;}
+  .card h3{font-size:18.5px; font-weight:700; line-height:1.4;}
+  .card p{color:var(--muted); font-size:14.5px; line-height:1.6;}
+  .tags{display:flex; flex-wrap:wrap; gap:6px;}
+  .tag{background:var(--gold-soft); color:var(--gold); font-size:12.5px; padding:3px 9px; border-radius:999px;}
+  .code-box{
+    background:var(--bg); border:1px solid var(--card-border); border-radius:10px; padding:10px 12px;
+    font-family:var(--mono); font-size:13.5px; color:var(--ink); max-height:130px; overflow:auto;
+    white-space:pre-wrap; direction:ltr; text-align:left;
+  }
+  .card-foot{display:flex; justify-content:space-between; align-items:center; margin-top:2px; flex-wrap:wrap; gap:8px;}
+  .cat-badge{font-size:12.5px; color:var(--teal); white-space:nowrap;}
+  .card-actions{display:flex; gap:6px; flex-wrap:wrap; justify-content:flex-end;}
+  .mini-btn{
+    background:none; border:1px solid var(--card-border); color:var(--muted); border-radius:8px;
+    padding:5px 10px; font-size:13.5px; cursor:pointer; font-family:inherit;
+  }
+  .mini-btn:hover{border-color:var(--gold); color:var(--gold);}
+  .mini-btn.del:hover{border-color:var(--danger); color:var(--danger);}
+  .empty{color:var(--muted); text-align:center; padding:60px 20px; font-size:15.5px;}
+  /* Modal */
+  .overlay{
+    position:fixed; inset:0; background:#00000088; display:none; align-items:center; justify-content:center; z-index:50; padding:20px;
+  }
+  .overlay.show{display:flex;}
+  .modal{
+    background:var(--panel); border:1px solid var(--card-border); border-radius:16px; padding:26px;
+    width:100%; max-width:520px; max-height:88vh; overflow-y:auto; display:flex; flex-direction:column; gap:12px;
+  }
+  .modal h2{font-size:20px; margin-bottom:6px;}
+  .field label{display:block; font-size:13.5px; color:var(--muted); margin-bottom:5px;}
+  .field input, .field textarea, .field select{
+    width:100%; background:var(--card); border:1px solid var(--card-border); border-radius:10px;
+    padding:10px 12px; color:var(--ink); font-family:inherit; font-size:15.5px; outline:none;
+  }
+  .field textarea{font-family:var(--mono); direction:ltr; text-align:left; min-height:130px; resize:vertical;}
+  .drop-zone{
+    border:2px dashed var(--card-border); border-radius:12px; padding:16px; text-align:center;
+    color:var(--muted); font-size:14.5px; cursor:pointer; margin-bottom:10px; transition:.15s;
+  }
+  .drop-zone:hover{border-color:var(--gold); color:var(--gold);}
+  .drop-zone.drag-over{border-color:var(--gold); background:var(--gold-soft); color:var(--gold);}
+  .modal-actions{display:flex; gap:10px; margin-top:8px;}
+  .modal-actions button{flex:1; height:44px; border-radius:10px; font-family:inherit; font-size:15.5px; cursor:pointer;}
+  .guide-steps{list-style:none; display:flex; flex-direction:column; gap:14px; counter-reset:step;}
+  .guide-steps li{display:flex; gap:12px; align-items:flex-start;}
+  .guide-steps li::before{
+    counter-increment:step; content:counter(step); flex:none; width:26px; height:26px; border-radius:50%;
+    background:var(--gold-soft); color:var(--gold); font-weight:900; font-size:13px;
+    display:flex; align-items:center; justify-content:center;
+  }
+  .guide-steps b{display:block; margin-bottom:2px; font-size:16.5px;}
+  .guide-steps span{color:var(--muted); font-size:14.5px; line-height:1.6;}
+  .guide-close{align-self:flex-end; background:var(--gold); color:#1a1608; font-weight:700; border:none; border-radius:10px; padding:9px 20px; cursor:pointer; font-family:inherit;}
+  .toast{
+    position:fixed; bottom:24px; left:50%; transform:translateX(-50%) translateY(20px); opacity:0;
+    background:var(--gold); color:#1a1608; padding:10px 20px; border-radius:999px; font-size:14.5px;
+    font-weight:700; transition:.25s; z-index:80;
+  }
+  .toast.show{opacity:1; transform:translateX(-50%) translateY(0);}
+  @media(max-width:760px){
+    body{flex-direction:column;}
+    aside{width:100%; max-height:70vh;}
+  }
+</style>
+</head>
+<body>
+
+<aside id="sidebar">
+  <div class="brand">
+    <div class="seal">A</div>
+    <div><h1>أرشيف الأكواد</h1><span>مرجعك الخاص لأكواد VBA</span></div>
+  </div>
+  <button class="sidebar-toggle" onclick="toggleSidebar()">👁️ إخفاء القائمة</button>
+  <nav id="catNav"></nav>
+  <div class="side-actions">
+    <button class="ghost-btn" onclick="openGuide('excel')">📖 طريقة استخدام الأكواد في Excel</button>
+    <button class="ghost-btn" onclick="openGuide('save')">💾 كيف يُحفظ الأرشيف؟</button>
+    <button class="ghost-btn" onclick="toggleTheme()" id="themeBtn">🌙 الوضع الداكن</button>
+    <button class="ghost-btn" onclick="exportData()">⭳ تصدير نسخة احتياطية</button>
+    <button class="ghost-btn" onclick="document.getElementById('importFile').click()">⭱ استيراد نسخة</button>
+    <input type="file" id="importFile" accept=".json" style="display:none" onchange="importData(event)">
+  </div>
+</aside>
+
+<button id="showSidebarBtn" onclick="toggleSidebar()" title="إظهار القائمة الجانبية">☰</button>
+
+<main>
+  <header class="top">
+    <div class="search-wrap">
+      <span>🔍</span>
+      <input id="searchInput" placeholder="ابحث بالاسم، الوصف، الوسم، أو داخل الكود نفسه..." oninput="render()">
+    </div>
+    <button class="primary-btn" onclick="openModal()">+ إضافة كود جديد</button>
+  </header>
+  <div class="count-line" id="countLine"></div>
+  <div class="grid" id="grid"></div>
+</main>
+
+<div class="overlay" id="overlay">
+  <div class="modal">
+    <h2 id="modalTitle">إضافة كود جديد</h2>
+    <div class="field"><label>اسم الكود</label><input id="f_name" placeholder="مثال: تصدير الشيت الحالي إلى PDF"></div>
+    <div class="field"><label>الوصف</label><textarea id="f_desc" style="direction:rtl;text-align:right;font-family:'Tajawal';min-height:60px" placeholder="ما الذي يفعله هذا الكود؟"></textarea></div>
+    <div class="field"><label>الفئة</label>
+      <select id="f_cat">
+        <option>ملفات</option><option>بيانات</option><option>تقارير</option>
+        <option>أتمتة</option><option>تنسيق</option><option>أخرى</option>
+      </select>
+    </div>
+    <div class="field"><label>الوسوم (مفصولة بفاصلة)</label><input id="f_tags" placeholder="PDF, تصدير, طباعة"></div>
+    <div class="field">
+      <label>الكود</label>
+      <div id="dropZone" class="drop-zone" onclick="document.getElementById('fileInput').click()">
+        <span id="dropZoneText">📄 اسحب وأفلت ملف .txt أو .bas هنا، أو اضغط للاختيار</span>
+      </div>
+      <input type="file" id="fileInput" accept=".txt,.bas" style="display:none" onchange="handleFileSelect(event)">
+      <textarea id="f_code" placeholder="Sub MyMacro()&#10;&#10;End Sub"></textarea>
+    </div>
+    <div class="modal-actions">
+      <button class="mini-btn" style="flex:none;padding:0 18px" onclick="closeModal()">إلغاء</button>
+      <button class="primary-btn" style="flex:1" onclick="saveCode()">حفظ الكود</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<div class="overlay" id="guideOverlay">
+  <div class="modal" id="guideModal"></div>
+</div>
+
+
+<script>
+const STORE_KEY='vba_archive_v1';
+let editingId=null, activeCat='الكل';
+
+const seed=[
+  {id:1,name:"حذف الصفوف الفارغة",desc:"يمر على الشيت النشط ويحذف كل صف فارغ بالكامل تلقائياً.",cat:"بيانات",tags:["تنظيف","صفوف"],date:"2026-01-10",
+   code:"Sub DeleteEmptyRows()\n    Dim i As Long\n    For i = Cells(Rows.Count, 1).End(xlUp).Row To 1 Step -1\n        If Application.WorksheetFunction.CountA(Rows(i)) = 0 Then\n            Rows(i).Delete\n        End If\n    Next i\nEnd Sub"},
+  {id:2,name:"تصدير الشيت كـ PDF",desc:"يصدّر الشيت النشط إلى ملف PDF في نفس مسار الملف.",cat:"ملفات",tags:["PDF","تصدير"],date:"2026-02-03",
+   code:"Sub ExportToPDF()\n    Dim p As String\n    p = ThisWorkbook.Path & \"\\\" & ActiveSheet.Name & \".pdf\"\n    ActiveSheet.ExportAsFixedFormat Type:=xlTypePDF, Filename:=p\nEnd Sub"},
+  {id:3,name:"تلوين الصفوف بالتناوب",desc:"ينسّق الجدول بألوان متناوبة لتحسين القراءة.",cat:"تنسيق",tags:["تنسيق","ألوان"],date:"2026-03-18",
+   code:"Sub StripeRows()\n    Dim i As Long, r As Range\n    Set r = ActiveSheet.UsedRange\n    For i = 1 To r.Rows.Count\n        If i Mod 2 = 0 Then r.Rows(i).Interior.Color = RGB(240,240,240)\n    Next i\nEnd Sub"}
+];
+
+function loadData(){
+  try{ const raw=localStorage.getItem(STORE_KEY); return raw? JSON.parse(raw): seed; }
+  catch(e){ return seed; }
+}
+function saveData(data){ localStorage.setItem(STORE_KEY, JSON.stringify(data)); }
+let data=loadData();
+
+const RECENT_KEY='vba_archive_recent';
+function loadRecent(){
+  try{ return JSON.parse(localStorage.getItem(RECENT_KEY)) || []; }catch(e){ return []; }
+}
+function pushRecent(id){
+  let recent=loadRecent().filter(x=>x!==id);
+  recent.unshift(id);
+  recent=recent.slice(0,20);
+  localStorage.setItem(RECENT_KEY, JSON.stringify(recent));
+}
+function toggleFav(id){
+  const item=data.find(d=>d.id===id);
+  item.fav=!item.fav; saveData(data); render();
+}
+
+function categories(){
+  const set=new Set(data.map(d=>d.cat));
+  return ["الكل", ...Array.from(set)];
+}
+function renderNav(){
+  const nav=document.getElementById('catNav');
+  nav.innerHTML='';
+  const recentIds=loadRecent();
+  const specials=[
+    {key:'المفضلة', icon:'⭐', count:data.filter(d=>d.fav).length},
+    {key:'الأخيرة', icon:'🕘', count:recentIds.filter(id=>data.some(d=>d.id===id)).length}
+  ];
+  specials.forEach(s=>{
+    const btn=document.createElement('button');
+    btn.className = activeCat===s.key ? 'active':'';
+    btn.innerHTML = `<span>${s.icon} ${s.key}</span><em>${s.count}</em>`;
+    btn.onclick=()=>{ activeCat=s.key; render(); };
+    nav.appendChild(btn);
+  });
+  const divider=document.createElement('div');
+  divider.style.cssText='height:1px;background:var(--card-border);margin:6px 0;';
+  nav.appendChild(divider);
+  categories().forEach(cat=>{
+    const count = cat==='الكل' ? data.length : data.filter(d=>d.cat===cat).length;
+    const btn=document.createElement('button');
+    btn.className = cat===activeCat ? 'active':'';
+    btn.innerHTML = `<span>${cat}</span><em>${count}</em>`;
+    btn.onclick=()=>{ activeCat=cat; render(); };
+    nav.appendChild(btn);
+  });
+}
+function render(){
+  renderNav();
+  const q=document.getElementById('searchInput').value.trim().toLowerCase();
+  let list;
+  if(activeCat==='المفضلة'){
+    list = data.filter(d=>d.fav);
+  } else if(activeCat==='الأخيرة'){
+    const recentIds=loadRecent();
+    list = recentIds.map(id=>data.find(d=>d.id===id)).filter(Boolean);
+  } else {
+    list = data.filter(d=> activeCat==='الكل' || d.cat===activeCat);
+  }
+  if(q){
+    list=list.filter(d=>
+      d.name.toLowerCase().includes(q) ||
+      d.desc.toLowerCase().includes(q) ||
+      d.tags.join(' ').toLowerCase().includes(q) ||
+      d.code.toLowerCase().includes(q)
+    );
+  }
+  document.getElementById('countLine').textContent = `عدد الأكواد: ${list.length}`;
+  const grid=document.getElementById('grid');
+  if(list.length===0){ grid.innerHTML='<div class="empty">لا توجد نتائج مطابقة. جرّب كلمة بحث أخرى أو أضف كوداً جديداً.</div>'; return; }
+  grid.innerHTML = list.map(d=>`
+    <div class="card">
+      <div class="card-top">
+        <div><span class="card-num">${d.id}</span><h3>${escapeHtml(d.name)}</h3></div>
+        <button class="mini-btn" style="flex:none" onclick="toggleFav(${d.id})" title="إضافة للمفضلة">${d.fav?'⭐':'☆'}</button>
+      </div>
+      <p>${escapeHtml(d.desc)}</p>
+      <div class="tags">${d.tags.map(t=>`<span class="tag">${escapeHtml(t)}</span>`).join('')}</div>
+      <div class="code-box">${escapeHtml(d.code)}</div>
+      <div class="card-foot">
+        <span class="cat-badge">${d.cat} · ${d.date}</span>
+        <div class="card-actions">
+          <button class="mini-btn" onclick="copyCode(${d.id})">نسخ</button>
+          <button class="mini-btn" onclick="downloadCode(${d.id},'txt')">TXT⭳</button>
+          <button class="mini-btn" onclick="downloadCode(${d.id},'bas')">BAS⭳</button>
+          <button class="mini-btn" onclick="editCode(${d.id})">تعديل</button>
+          <button class="mini-btn del" onclick="deleteCode(${d.id})">حذف</button>
+        </div>
+      </div>
+    </div>
+  `).join('');
+}
+function escapeHtml(s){ return s.replace(/[&<>"]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+
+function copyCode(id){
+  const item=data.find(d=>d.id===id);
+  navigator.clipboard.writeText(item.code).then(()=>showToast('تم نسخ الكود ✔'));
+  pushRecent(id); renderNav();
+}
+function downloadCode(id, ext){
+  const item=data.find(d=>d.id===id);
+  const safeName = item.name.trim().replace(/[\\/:*?"<>|]/g,'').replace(/\s+/g,'_') || 'vba-code';
+  const blob=new Blob([item.code], {type:'text/plain;charset=utf-8'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download = `${safeName}.${ext}`;
+  a.click();
+  pushRecent(id); renderNav();
+  showToast(`تم تنزيل الملف بصيغة .${ext}`);
+}
+function deleteCode(id){
+  if(!confirm('هل تريد حذف هذا الكود نهائياً؟')) return;
+  data=data.filter(d=>d.id!==id); saveData(data); render(); showToast('تم الحذف');
+}
+function openModal(){
+  editingId=null;
+  document.getElementById('modalTitle').textContent='إضافة كود جديد';
+  ['f_name','f_desc','f_tags','f_code'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('f_cat').value='ملفات';
+  document.getElementById('overlay').classList.add('show');
+}
+function editCode(id){
+  const item=data.find(d=>d.id===id);
+  editingId=id;
+  document.getElementById('modalTitle').textContent='تعديل الكود';
+  document.getElementById('f_name').value=item.name;
+  document.getElementById('f_desc').value=item.desc;
+  document.getElementById('f_cat').value=item.cat;
+  document.getElementById('f_tags').value=item.tags.join(', ');
+  document.getElementById('f_code').value=item.code;
+  document.getElementById('overlay').classList.add('show');
+}
+function closeModal(){ document.getElementById('overlay').classList.remove('show'); }
+
+function processCodeFile(file){
+  const validExt = /\.(txt|bas)$/i.test(file.name);
+  if(!validExt){ showToast('يُسمح فقط بملفات .txt أو .bas'); return; }
+  const reader=new FileReader();
+  reader.onload=ev=>{
+    document.getElementById('f_code').value = ev.target.result;
+    if(!document.getElementById('f_name').value.trim()){
+      document.getElementById('f_name').value = file.name.replace(/\.(txt|bas)$/i,'');
+    }
+    showToast('تم تحميل الكود من الملف ✔');
+  };
+  reader.onerror=()=> showToast('تعذّرت قراءة الملف');
+  reader.readAsText(file);
+}
+function handleFileSelect(e){
+  const file=e.target.files[0]; if(file) processCodeFile(file);
+  e.target.value='';
+}
+(function initDropZone(){
+  const zone=document.getElementById('dropZone');
+  ['dragenter','dragover'].forEach(evt=>{
+    zone.addEventListener(evt, e=>{ e.preventDefault(); e.stopPropagation(); zone.classList.add('drag-over'); });
+  });
+  ['dragleave','drop'].forEach(evt=>{
+    zone.addEventListener(evt, e=>{ e.preventDefault(); e.stopPropagation(); zone.classList.remove('drag-over'); });
+  });
+  zone.addEventListener('drop', e=>{
+    const file = e.dataTransfer.files[0];
+    if(file) processCodeFile(file);
+  });
+})();
+function saveCode(){
+  const name=document.getElementById('f_name').value.trim();
+  const code=document.getElementById('f_code').value.trim();
+  if(!name || !code){ showToast('الاسم والكود مطلوبان'); return; }
+  const tags=document.getElementById('f_tags').value.split(',').map(t=>t.trim()).filter(Boolean);
+  const today=new Date().toISOString().slice(0,10);
+  if(editingId){
+    const item=data.find(d=>d.id===editingId);
+    Object.assign(item,{name, desc:document.getElementById('f_desc').value.trim(), cat:document.getElementById('f_cat').value, tags, code});
+  } else {
+    const newId = data.length? Math.max(...data.map(d=>d.id))+1 : 1;
+    data.push({id:newId, name, desc:document.getElementById('f_desc').value.trim(), cat:document.getElementById('f_cat').value, tags, date:today, code});
+  }
+  saveData(data); closeModal(); render(); showToast('تم الحفظ بنجاح ✔');
+}
+function exportData(){
+  const blob=new Blob([JSON.stringify(data,null,2)], {type:'application/json'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob); a.download='vba-archive-backup.json'; a.click();
+}
+function importData(e){
+  const file=e.target.files[0]; if(!file) return;
+  const reader=new FileReader();
+  reader.onload=ev=>{
+    try{
+      const imported=JSON.parse(ev.target.result);
+      if(Array.isArray(imported)){ data=imported; saveData(data); render(); showToast('تم استيراد الأرشيف'); }
+    }catch(err){ showToast('ملف غير صالح'); }
+  };
+  reader.readAsText(file);
+}
+function showToast(msg){
+  const t=document.getElementById('toast'); t.textContent=msg; t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'), 2200);
+}
+const guides={
+  excel:{
+    title:'📖 طريقة استخدام الأكواد في Excel',
+    body:`<ol class="guide-steps">
+      <li><div><b>افتح محرر VBA</b><span>من داخل Excel اضغط Alt + F11، أو من تبويب "المطوّر" اختر Visual Basic.</span></div></li>
+      <li><div><b>أدرج موديول جديد</b><span>من القائمة العلوية: Insert ثم Module. ستظهر نافذة كتابة كود فارغة.</span></div></li>
+      <li><div><b>الصق الكود</b><span>انسخ الكود من الأرشيف بزر "نسخ"، ثم الصقه داخل الموديول (Ctrl+V).</span></div></li>
+      <li><div><b>شغّل الكود</b><span>اضغط F5 داخل المحرر، أو ارجع للـ Excel وشغّل الماكرو من Alt+F8.</span></div></li>
+      <li><div><b>احفظ الملف بالصيغة الصحيحة</b><span>عند الحفظ اختر النوع "Excel Macro-Enabled Workbook (.xlsm)" حتى لا يُحذف الكود.</span></div></li>
+    </ol>`
+  },
+  save:{
+    title:'💾 كيف يُحفظ الأرشيف؟',
+    body:`<ol class="guide-steps">
+      <li><div><b>الحفظ التلقائي محلياً</b><span>كل كود تضيفه يُحفظ فوراً داخل متصفحك (localStorage) في هذا الجهاز، دون أي اتصال بالإنترنت.</span></div></li>
+      <li><div><b>مرتبط بالمتصفح والجهاز</b><span>الأرشيف لا ينتقل تلقائياً بين الأجهزة أو المتصفحات، ويُمسح إذا قمت بمسح بيانات التصفح.</span></div></li>
+      <li><div><b>خذ نسخة احتياطية دورياً</b><span>استخدم زر "تصدير نسخة احتياطية" لحفظ الأرشيف كملف JSON في مكان آمن (فلاش، درايف، إلخ).</span></div></li>
+      <li><div><b>الاستعادة أو النقل لجهاز آخر</b><span>افتح هذا الملف على أي جهاز، ثم استخدم زر "استيراد نسخة" واختر ملف JSON لاستعادة كامل الأرشيف.</span></div></li>
+    </ol>`
+  }
+};
+function openGuide(type){
+  const g=guides[type];
+  document.getElementById('guideModal').innerHTML =
+    `<h2>${g.title}</h2>${g.body}<button class="guide-close" onclick="closeGuide()">حسناً، فهمت</button>`;
+  document.getElementById('guideOverlay').classList.add('show');
+}
+function closeGuide(){ document.getElementById('guideOverlay').classList.remove('show'); }
+
+function toggleSidebar(){
+  const sidebar=document.getElementById('sidebar');
+  const showBtn=document.getElementById('showSidebarBtn');
+  const hidden = sidebar.classList.toggle('collapsed');
+  showBtn.classList.toggle('show', hidden);
+  localStorage.setItem('vba_archive_sidebar', hidden ? 'hidden':'visible');
+}
+(function initSidebar(){
+  if(localStorage.getItem('vba_archive_sidebar')==='hidden'){
+    document.getElementById('sidebar').classList.add('collapsed');
+    document.getElementById('showSidebarBtn').classList.add('show');
+  }
+})();
+
+function toggleTheme(){
+  const isLight = document.documentElement.getAttribute('data-theme')==='light';
+  document.documentElement.setAttribute('data-theme', isLight? 'dark':'light');
+  document.getElementById('themeBtn').textContent = isLight? '🌙 الوضع الداكن':'☀️ الوضع الفاتح';
+  localStorage.setItem('vba_archive_theme', isLight? 'dark':'light');
+}
+(function initTheme(){
+  const saved=localStorage.getItem('vba_archive_theme');
+  if(saved==='light'){ document.documentElement.setAttribute('data-theme','light'); document.getElementById('themeBtn').textContent='☀️ الوضع الفاتح'; }
+})();
+
+saveData(data);
+render();
+</script>
+</body>
+</html>
